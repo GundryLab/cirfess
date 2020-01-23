@@ -1,11 +1,12 @@
 # SurfaceGenie_0.1/ui.R
 library(shiny)
-library(plotly)
 library(DT)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
-  
-  ##########    Home    ##########
+
+                   
+                     
+  ####################          Home               #######################
   
   tabPanel(
     "CIRFESS",
@@ -29,7 +30,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
     
     tags$img(src="website_homepage.svg",  width="25%",align="right"),
     h4("Welcome to ", span(class ="text-success", "CIRFESS"),"!"),
-     p(tags$i("Helping Mass Spectrometrists find peptides since 2020")),
+#     p(tags$i("Helping Mass Spectrometrists find peptides since 2020")),
 #    p(tags$u("C"), "ompiled ", tags$u("I"), "nteractive ", tags$u("R"), "esource ", tags$u("f"), "or ", tags$u("E"), "xtracellular and ", tags$u("S"), "urface ", tags$u("S"), "tudies (CIRFESS) integrates multiple 
      p("Compiled Interactive Resource for Extracellular and Surface Studies (CIRFESS) integrates multiple 
         prediction strategies and annotations into a single 
@@ -49,41 +50,18 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
      br(), 
 #     div(style="width:20%;display:block;margin-left:auto;margin-right:auto",
      div(style="width:25%;display:block;margin-right:auto",
-             tags$script(type="text/javascript", id="clustrmaps", src="https://cdn.clustrmaps.com/map_v2.js?d=oOpnxVR26WnLiF16Exi-XrxGb3rCX9xwJ4nBPUTKf1E&cl=ffffff&w=a")     )
+     tags$script(type="text/javascript", id="clustrmaps", src="https://cdn.clustrmaps.com/map_v2.js?d=oOpnxVR26WnLiF16Exi-XrxGb3rCX9xwJ4nBPUTKf1E&cl=ffffff&w=a")     )
   ),
 
   
-  ##########  Instructions ##########
 
-#   tabPanel(
-#     "Instructions",
-#     div(
-#       p(style="font-size: 17px", tags$i("Before you begin:")),
-# #      p(em("Before you begin:")),
-#       p("SurfaceGenie contains two separate,  though related,  tools – ", span(class ="text-success", tags$b("GenieScore Calculator")), " and ", span(class ="text-success", tags$b("SPC Score Lookup")), ".  It is strongly recommended that all users read the ", a(href="UserGuide.pdf", "User Guide"), " which contains step-by-step tutorials for both the GenieScore Calculator and the SPC Score Lookup tools. The User Guide comprehensively defines all of the features available in the SurfaceGenie web application including some background on the theory and calculations."),
-#       p(style="font-size: 17px", tags$i("Conversion to Uniprot Accession IDs:")),
-#       p("SurfaceGenie operates with Uniprot Accession IDs only. Bulk conversion of alternate IDs to Uniprot IDs can be performed using the ‘Retrieve/ID mapping tool’ available on the Uniprot website, found here. Note that conversion between IDs is not always one-to-one. Manual curation of the results from the ID mapping is advisable."),
-#       p(style="font-size: 17px", tags$i("Species availability:")),
-#       p("Currently, most functions on SurfaceGenie are available only for human, mouse, and rat data. Calculation of some GenieScore permutations do not require Accession numbers, and will work on any type input data (see User Guide for more information). If you have requests for additional species, please ", a(href="#Contact", "contact us", onclick = "fakeClick('Contact')"), "."),
-#       p(style="font-size: 17px", tags$i("Example files:")),
-#       p("Examples of files formatted correctly for the GenieScore Calculator and the SPC Score Lookup tools can be downloaded using the links below. For more information, please refer to the ", a(href="UserGuide.pdf", "User Guide"), "." ),
-#       p(a(href="ExampleDataForSurfaceGenie.csv", "GenieScore Calculator example file")),
-#       p(a(href="ExampleDataForSPCdownload.csv", "SPC Score Lookup example file")),
-#       br(),
-#       p(style="font-size: 17px", tags$i("GenieScore Quick Overview:")),
-#       tags$img(src="GSC_instructions.png", width="800px"), #, align="right"),
-#       p(style="font-size: 17px", tags$i("SPC Score Lookup Quick Overview:")),
-#       tags$img(src="SSL_instructions.png", width="800px") #, align="right")
-#     )
-#     ),
-  
-  ##########  SurfaceGenie ##########
-  
+      ####################  Single Protein Lookup #######################
+
   tabPanel(
     "Single Protein Lookup",
     sidebarPanel(
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
-      em("Note: if no data appears after entering an accession, it is not one of the 20,405 human accessions in our database"  ),
+      em("Note: if no data appear after entering an accession, it is not one of the 20,405 human accessions in our database"  ),
       br(),
       br(),
       h5(class="text-info", "Key:"),
@@ -95,205 +73,17 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       p("ScoreSignalP - SignalP's Signal Peptide prediction score"),
       p("SigPepPredisi - Signal Peptide predicted by Predisi"),
       p("ScorePredisi - Predisi's Signal Peptide prediction score"),
-      p("numTMPhobius - Phobius' number of transmembrane domains"),
-      p("numICPhobius - Phobius' number of intracellular domains"),
-      p("numECPhobius - Phobius' number of extracellular domains"),
-      p("numTMTMHMM - TMHMM's number of transmembrane domains"),
-      p("numICTMHMM - TMHMM's number of intracellular domains"),
-      p("numECTMHMM - TMHMM's number of extracellular domains"),
+      p("#TMPhobius - Phobius' number of transmembrane domains"),
+      p("#ICPhobius - Phobius' number of intracellular domains"),
+      p("#ECPhobius - Phobius' number of extracellular domains"),
+      p("#TMTMHMM - TMHMM's number of transmembrane domains"),
+      p("#ICTMHMM - TMHMM's number of intracellular domains"),
+      p("#ECTMHMM - TMHMM's number of extracellular domains"),
       p("StringOutPhobius - raw output from Phobius"),
-      p("StringOutTMHMM - raw output from TMHMM")
-      
-  #     h5(class="text-info", "Data Input"),
-  #     fileInput("file1", "Choose Input File", multiple =FALSE, 
-  #               accept=c(".csv", ".tsv", ".txt", ".tab", ".xls", ".xlsx"), 
-  #               buttonLabel = "Browse...", placeholder = "No file selected"),
-  # 
-  #     h5(class="text-info", "Species"),
-  #     radioButtons(
-  #       "species", NULL,
-  #       choices = list(
-  #         "Human",
-  #         "Rat",
-  #         "Mouse",
-  #         "Other/Ignore"),
-  #       selected = list("Human")
-  #     ),      
-  #     
-  #     h1(),
-  #     h5(class="text-info", "Scoring Options"),
-  #     
-  #       conditionalPanel(
-  #       condition = "input.species!='Other/Ignore'",
-  #       checkboxGroupInput(
-  #         "scoring_opts", label=NULL,
-  #         choiceNames = mapply(scores, images, FUN=function(score, imgloc) {
-  #           tagList(
-  #             score,
-  #             tags$img(src=imgloc, width=75)
-  #           )
-  #         }, SIMPLIFY = FALSE, USE.NAMES = FALSE),
-  #       choiceValues = list(
-  #         "GS", "IsoGenie", "OmniGenie", "IsoOmniGenie")
-  #       )
-  #     ),
-  #     conditionalPanel(
-  #       condition = "input.species=='Other/Ignore'",
-  #       checkboxGroupInput(
-  #         "scoring_opts_o", label=NULL,
-  #         choiceNames = mapply(scores[c(3,4)], images[c(3,4)], FUN=function(score, imgloc) {
-  #           tagList(
-  #             score,
-  #             tags$img(src=imgloc, width=75)
-  #           )
-  #         }, SIMPLIFY = FALSE, USE.NAMES = FALSE),
-  #         choiceValues = list(
-  #         "OmniGenie", "IsoOmniGenie")
-  #     )
-  #     ),
-  #     h1(),
-  #     h5(class="text-info", "Processing Option"),
-  #     checkboxGroupInput(
-  #       "processing_opts", NULL,
-  #       choiceNames = list(
-  #         "Group samples"),
-  #       choiceValues = list(
-  #         "grouping")
-  #     ),
-  #     conditionalPanel(
-  #       condition = "input.processing_opts.indexOf('smarker') > -1",
-  #       h5(class="text-info", "Markers for Specific Sample"),
-  #       textInput(
-  #         "markersample", "Enter sample name:", placeholder="i.e. 'd00' or 'Group 1'"
-  #       )
-  #     ),
-  #     conditionalPanel(
-  #       condition = "input.processing_opts.indexOf('grouping') > -1",
-  #       h5(class="text-info", "Sample Grouping"),
-  #       selectInput("groupmethod", "Grouping method",
-  #                   choices = c(
-  #                     "Mean" = "ave",
-  #                     "Median" = "med"),
-  #                   selected = "ave"
-  #       ),
-  #       p("*Please see Sample Grouping section on the Home page for instructions 
-  #         on how to enter grouping information."),
-  #       sliderInput("numgroups", "Number of groups",
-  #                   min=2, max=5, value=2, step=1, ticks=FALSE),
-  #       textInput("group1", "Group 1", placeholder="Columns in Group 1"),
-  #       textInput("group2", "Group 2", placeholder="Columns in Group 2"),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 3",
-  #         textInput("group3", "Group 3", placeholder="Columns in Group 3")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 4",
-  #         textInput("group4", "Group 4", placeholder="Columns in Group 4")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 5",
-  #         textInput("group5", "Group 5", placeholder="Columns in Group 5")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 6",
-  #         textInput("group6", "Group 6", placeholder="Columns in Group 6")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 7",
-  #         textInput("group7", "Group 7", placeholder="Columns in Group 7")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 8",
-  #         textInput("group8", "Group 8", placeholder="Columns in Group 8")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 9",
-  #         textInput("group9", "Group 9", placeholder="Columns in Group 9")
-  #       ),
-  #       conditionalPanel(
-  #         condition = "input.numgroups >= 10",
-  #         textInput("group10", "Group 10", placeholder="Columns in Group 10")
-  #       )
-  #     ),
-  # 
-  #     h1(),
-  #     h5(class="text-info", "Export Options (CSV Download Tab)"),
-  #     conditionalPanel(
-  #       condition = "input.species!='Other/Ignore'",
-  #       checkboxGroupInput(
-  #       'export_options1', "SurfaceGenie Components:",
-  #       choiceNames = list(
-  #         "SPC score (SPC)",
-  #         "Gini coefficient (Gini)",
-  #         "Signal strength (SS)"
-  #       ),
-  #       choiceValues = list(
-  #         "SPC", "Gini", "SS")
-  #     )
-  #     ),
-  #     conditionalPanel(
-  #       condition = "input.species=='Other/Ignore'",
-  #       checkboxGroupInput(
-  #         'export_options1o', "SurfaceGenie Components:",
-  #         choiceNames = list(
-  #           "Gini coefficient (Gini)",
-  #           "Signal strength (SS)"
-  #         ),
-  #         choiceValues = list(
-  #           "Gini", "SS")
-  #       )
-  #     ),
-  #     conditionalPanel(
-  #       condition = "input.species=='Human'",
-  #       checkboxGroupInput(
-  #       'export_options2h', "Annotations / Link outs:",
-  #       choiceNames = list(
-  #            "HLA molecules",
-  #            "CD molecules",
-  #            "Gene Name",
-  #            "Number of CSPA experiments",
-  #            "Transmembrane",
-  #            "Subcellular Location",
-  #            "UniProt Linkout"),
-  #       choiceValues = list(
-  #         "HLA", "CD", "geneName", "CSPA..e", "Transmembrane", "CC", "UniProt Linkout")
-  #       )
-  # ),
-  # conditionalPanel(
-  #   condition = "input.species=='Rat'",
-  #   checkboxGroupInput(
-  #     'export_options2r', "Annotations / Link outs:",
-  #     choiceNames = list(
-  #       "CD molecules",
-  #       "Gene Name",
-  #       "Transmembrane",
-  #       "Subcellular Location",
-  #       "UniProt Linkout"),
-  #     choiceValues = list(
-  #        "CD", "geneName", "Transmembrane", "CC", "UniProt Linkout")
-  #   )
-  # ),
-  # conditionalPanel(
-  #   condition = "input.species=='Mouse'",
-  #   checkboxGroupInput(
-  #     'export_options2m', "Annotations / Link outs:",
-  #     choiceNames = list(
-  #       "CD molecules",
-  #       "Gene Name",
-  #       "Number of CSPA experiments",
-  #       "Transmembrane",
-  #       "Subcellular Location",
-  #       "UniProt Linkout"),
-  #     choiceValues = list(
-  #       "CD", "geneName", "CSPA..e", "Transmembrane", "CC", "UniProt Linkout")
-  #   )
-  # )
-  # 
+      p("StringOutTMHMM - raw output from TMHMM"),
+      p("numMissedCleavages - number of times trypsin missed a cleavage in the peptide")
     ),
     
-  
-  ##########    Single Protein Lookup   ##########
-  
     mainPanel(
       h5(class="text-info", "SPC Information"),
       tableOutput('SPC'),
@@ -306,25 +96,27 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
       
-    #   span(textOutput("txtWarning"), style="color:red"),
      )
   ),
   
-  ##########  Surface Protein Concensus (SPC) Score  Lookup ##########
-  
+
+
+#   span(textOutput("txtWarning"), style="color:red"),
+
   tabPanel(
     "Batch Retreival",
     sidebarPanel(
       h5(class="text-info", "Input Option 1"),
       textAreaInput("quicklookup", "Uniprot accession number:", 
-                placeholder="Enter accession numbers, each on a new line. For example:
+        placeholder="Enter accession numbers, each on a new line. For example:
                                                               
-                                        A0AVT1-1 
-                                        A0FGR8-6 
-                                        A1L0T0 
-                                        A1X283",
-                rows=10),
+                                        P23508 
+                                        Q6ZV80 
+                                        Q9NX46 
+                                        P41240",
+        rows=10),
       br(),
+
       h5(class="text-info", "Input Option 2"),
       fileInput("file2", "Choose Input File", multiple =FALSE, 
                 accept=c(".csv", ".tsv", ".txt", ".tab", ".xls", ".xlsx"),
@@ -376,13 +168,16 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
                     p("If your data are in a form other than UniProt (e.g. ENSEMBL gene, UniGene), a conversion 
                       tool is available", a(href="https://www.uniprot.org/uploadlists/", "here"), "Under 'Select options', 
                       select your ID type in the 'From' field and then 'UniProt KB' in the 'To' field. "),
-                    h5(class="text-info", "Bulk Lookup"),
+                    h5(class="text-info", "Input Option 2"),
                     p("Upload a file containing a single column of UniProt accession numbers. "),
                     p("Bulk conversion from a different protein ID type to UniProt is available ",
                       a(href="https://www.uniprot.org/uploadlists/", "here"), 
                       ". Under 'Select options', select your ID type in the 'From' field and then 'UniProt KB'
                       in the 'To' field."),
-                    p("With this method, the original upload file will be returned as a downloadable csv file which includes a column containing SPC Scores appended to the original input file.")
+                    br(),
+                    br(),
+                    p("The results will  be displayed on the screen and can be downloaded as either csv or tsv files.")
+#                    p("With this method, the original upload file will be returned as a downloadable csv file which includes a column containing SPC Scores appended to the original input file.")
                   ),
                   tabPanel(
                     "Output Option 1",
@@ -435,10 +230,10 @@ tabPanel(
   tabPanel(
     "References",
     div(
-      h4("How to reference ", span(class ="text-success", "Cirfess") ),
+      h4("How to reference ", span(class ="text-success", "CIRFESS") ),
       p("If you use CIRFESS in your work, please cite the original manuscript:"),
-      p("Waas M, Littrell J, Gundry RL, Construction of an interactive resource for informing 
-extracellular and surface proteomic studies (CIRFESS), submitted.") 
+      p("Waas M, Littrell J, Gundry RL, CIRFESS: An interactive resource for querying the set of 
+        theoretically detectable peptides for cell surface and extracellular enrichment proteomic studies, submitted.") 
 #        tags$a(href="https://doi.org/10.1101/575969", "https://doi.org/10.1101/575969"))
     ),
     br(),
@@ -457,11 +252,7 @@ extracellular and surface proteomic studies (CIRFESS), submitted.")
       )
     ),
     br()
-#    div(
-#      h4("Users:"),
-#      tags$script(type="text/javascript", id="clustrmaps", src="https://cdn.clustrmaps.com/map_v2.js?d=VJztTvZJUQlwpFCwOOYTSK6ktP0YBoNDEMPj1OS_ID0&cl=ffffff&w=a")
-#      )
-    ),
+  ),
 
   ##########    Contact   ##########
 
@@ -477,12 +268,4 @@ extracellular and surface proteomic studies (CIRFESS), submitted.")
   br()
 )
 
-
-  
-  ##########    Footer   ##########
-
-#  div(
-#    br(), br(),
-#    tags$em(p(style="font-size:12px", "Publication Info [Gundry Lab 2018]"))
-# )
 ))
