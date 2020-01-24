@@ -1,6 +1,7 @@
 # SurfaceGenie_0.1/ui.R
 library(shiny)
 library(DT)
+library(rsconnect)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
 
@@ -81,7 +82,8 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       p("#ECTMHMM - TMHMM's number of extracellular domains"),
       p("StringOutPhobius - raw output from Phobius"),
       p("StringOutTMHMM - raw output from TMHMM"),
-      p("numMissedCleavages - number of times trypsin missed a cleavage in the peptide")
+      p("MissedCleavages - number of times trypsin missed a cleavage in the peptide"),
+      p("OKforMS - Length>5 and <2000m/z for 2 or 3 z")
     ),
     
     mainPanel(
@@ -104,7 +106,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
 #   span(textOutput("txtWarning"), style="color:red"),
 
   tabPanel(
-    "Batch Retreival",
+    "Batch Retrieval",
     sidebarPanel(
       h5(class="text-info", "Input Option 1"),
       textAreaInput("quicklookup", "Uniprot accession number:", 
@@ -122,7 +124,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
                 accept=c(".csv", ".tsv", ".txt", ".tab", ".xls", ".xlsx"),
                 buttonLabel = "Browse...", placeholder = "No file selected"),
       h1(),
-       h5(class="text-info", "Protein Export Options"),
+       h5(class="text-info", "Select information to include in the output"),
         checkboxInput("ProtLevelExp", "Protein Level Export", value = TRUE, width = NULL),
         conditionalPanel(
         condition = "input.ProtLevelExp",
