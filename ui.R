@@ -125,6 +125,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
                 buttonLabel = "Browse...", placeholder = "No file selected"),
       h1(),
        h5(class="text-info", "Select information to include in the output"),
+      h5(class="text-info", "Protein Export Options"),
         checkboxInput("ProtLevelExp", "Protein Level Export", value = TRUE, width = NULL),
         conditionalPanel(
         condition = "input.ProtLevelExp",
@@ -209,23 +210,23 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
   
 ##########  Reverse Lookup ##########
 
-tabPanel(
-  "Reverse Lookup",
-  sidebarPanel(
-    fluidRow(
-      splitLayout(cellWidths = c("40%", "20%", "40%"),
-        selectInput("inputA", "Property", choices= c("Length", "M/Z", "numMotif"), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
-#        textInput("inputA", "Property"),
-        selectInput("inputB", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
-#        textInput("inputB", "Comparator"),
-        textInput("inputC", "Value")
-      )
-    )
-  ),
-  mainPanel(
-    em("Under Construction")
-  )
-),
+# tabPanel(
+#   "Reverse Lookup",
+#   sidebarPanel(
+#     fluidRow(
+#       splitLayout(cellWidths = c("40%", "20%", "40%"),
+#         selectInput("inputA", "Property", choices= c("Length", "M/Z", "numMotif"), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+# #        textInput("inputA", "Property"),
+#         selectInput("inputB", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+# #        textInput("inputB", "Comparator"),
+#         textInput("inputC", "Value")
+#       )
+#     )
+#   ),
+#   mainPanel(
+#     em("Under Construction")
+#   )
+#),
 
 ##########    References   ##########
   
