@@ -67,7 +67,11 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       br(),
       h5(class="text-info", "Key:"),
       p("SPC -  Surface Protein Consensus Score from SurfaceGenie"),
-      p("SPC_DB - SPC Databases that predict this protein is cell surface"),
+      p("SPC_DB - SPC Databases that predict this protein is cell surface", br(),
+        "- Surfy = Bausch-Fluck et al., PNAS, 2018", br(),
+        "- Town = Town et all, PNAS, 2016", br(),
+        "- daCunha = da Cunha et al., PNAS, 2009", br(),
+        "- DiazRamoz = Diaz-Ramos et al., Immol Lett, 2011"),
       p("SigPepPhobius - Signal Peptide predicted by Phobius"),
       p("ScorePhobius - Phobius' Signal Peptide prediction score"),
       p("SigPepSignalP - Signal Peptide predicted by SignalP"),
@@ -236,7 +240,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h4("How to reference ", span(class ="text-success", "CIRFESS") ),
       p("If you use CIRFESS in your work, please cite the original manuscript:"),
       p("Waas M, Littrell J, Gundry RL, CIRFESS: An interactive resource for querying the set of 
-        theoretically detectable peptides for cell surface and extracellular enrichment proteomic studies, submitted.") 
+        theoretically detectable peptides for cell surface and extracellular enrichment proteomic studies, ", tags$a(href="https://www.biorxiv.org/content/10.1101/2020.01.22.916148v1.", "https://www.biorxiv.org/content/10.1101/2020.01.22.916148v1.")) 
 #        tags$a(href="https://doi.org/10.1101/575969", "https://doi.org/10.1101/575969"))
     ),
     br(),
