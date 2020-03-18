@@ -98,7 +98,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h5(class="text-info", "Topology Predictions"),
       tableOutput('Topo'),
       h5(class="text-info", "Peptide Summary"),
-      tableOutput('PepSummary')
+      dataTableOutput('PepSummary')
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
       

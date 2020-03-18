@@ -39,7 +39,7 @@ function(input, output, session) {
   ##### Topology Table ##### 
   
   Topotable <- reactive({
-    select <- 'SELECT numTMPhobius AS "#TMPhobius", numICPhobius AS "#ICPhobius", numECPhobius AS "#ECPhobius", numTMTMHMM AS "numTMTMHMM", numICTMHMM AS "#ICTMHMM", numECTMHMM AS "#ECTMHMM", StringOutPhobius, StringOutTMHMM'
+    select <- 'SELECT numTMPhobius AS "#TMPhobius", numICPhobius AS "#ICPhobius", numECPhobius AS "#ECPhobius", numTMTMHMM AS "#TMTMHMM", numICTMHMM AS "#ICTMHMM", numECTMHMM AS "#ECTMHMM", StringOutPhobius, StringOutTMHMM'
     sql <- paste0(select, " FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
   })
@@ -71,7 +71,7 @@ function(input, output, session) {
 #    colnames(d) <- c("#MissedCleavages", "OKforMS", "NXS", "NXT", "NXC", "NXV", "C", "K")
   })
   
-  output$PepSummary <- renderTable({
+  output$PepSummary <- renderDataTable({
     PepSummarytable()
   })
   
