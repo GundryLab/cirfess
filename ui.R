@@ -1,11 +1,13 @@
 # SurfaceGenie_0.1/ui.R
+library(RSQLite)
 library(shiny)
 library(DT)
 library(rsconnect)
 
-shinyUI(navbarPage("", theme = "bootstrap.css",
+conn <- dbConnect(RSQLite::SQLite(), "matt.db")
 
-                   
+
+shinyUI(navbarPage("", theme = "bootstrap.css",
                      
   ####################          Home               #######################
   
@@ -98,7 +100,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h5(class="text-info", "Topology Predictions"),
       tableOutput('Topo'),
       h5(class="text-info", "Peptide Summary"),
-      tableOutput('PepSummary')
+      dataTableOutput('PepSummary')
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
       
@@ -214,23 +216,69 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
   
 ##########  Reverse Lookup ##########
 
-# tabPanel(
-#   "Reverse Lookup",
-#   sidebarPanel(
-#     fluidRow(
-#       splitLayout(cellWidths = c("40%", "20%", "40%"),
-#         selectInput("inputA", "Property", choices= c("Length", "M/Z", "numMotif"), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
-# #        textInput("inputA", "Property"),
-#         selectInput("inputB", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
-# #        textInput("inputB", "Comparator"),
-#         textInput("inputC", "Value")
-#       )
-#     )
-#   ),
-#   mainPanel(
-#     em("Under Construction")
-#   )
-#),
+  tabPanel(
+    "Reverse Lookup",
+    sidebarPanel(width=6,
+      fluidRow(
+        # selectInput("state", "Choose a state:",
+        #             list(`East Coast` = list("NY", "NJ", "CT"),
+        #                  `West Coast` = list("WA", "OR", "CA"),
+        #                  `Midwest` = list("MN", "WI", "IA")), selectize = TRUE
+        # ),
+        splitLayout(cellWidths = c("40%", "20%", "40%"),
+          selectInput("inputA", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+          selectInput("inputB", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+          textInput("inputC", "Value")
+        ),
+
+        conditionalPanel(
+          condition="inputA.value != '' && inputC.value != ''",
+            splitLayout(cellWidths = c("40%", "20%", "40%"),
+              selectInput("inputD", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+              selectInput("inputE", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+              textInput("inputF", "Value")
+            )
+        ),
+        conditionalPanel(
+          condition="inputD.value != '' && inputF.value != ''",
+          splitLayout(cellWidths = c("40%", "20%", "40%"),
+            selectInput("inputG", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            selectInput("inputH", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            textInput("inputI", "Value")
+          )
+        ),
+        conditionalPanel(
+          condition="inputG.value != '' && inputI.value != ''",
+          splitLayout(cellWidths = c("40%", "20%", "40%"),
+            selectInput("inputJ", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            selectInput("inputK", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            textInput("inputL", "Value")
+          )
+        ),
+        conditionalPanel(
+          condition="inputJ.value != '' && inputL.value != ''",
+          splitLayout(cellWidths = c("40%", "20%", "40%"),
+            selectInput("inputM", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            selectInput("inputN", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            textInput("inputO", "Value")
+          )
+        ),
+        conditionalPanel(
+          condition="inputM.value != '' && inputO.value != ''",
+          splitLayout(cellWidths = c("40%", "20%", "40%"),
+            selectInput("inputP", "Property", choices = list(`Peptide` = dbListFields(conn, "pep"),`Protein` = dbListFields(conn, "prot")), selected = FALSE, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            selectInput("inputQ", "Comparator", choices= c(">", "=", "<", "!="), selected = NULL, multiple = FALSE, selectize = FALSE, width = NULL, size = NULL),
+            textInput("inputR", "Value")
+          )
+        ),
+        actionButton("go", "Go")    
+     )
+   ),
+   mainPanel(
+     em("Under Construction"),
+     dataTableOutput("Reverse")
+   )
+),
 
 ##########    References   ##########
   

@@ -8,6 +8,7 @@ library(DT)
 conn <- dbConnect(RSQLite::SQLite(), "matt.db")
 
 
+
 function(input, output, session) {
   
   ##########    Single Protein Lookup   ##########
@@ -39,7 +40,7 @@ function(input, output, session) {
   ##### Topology Table ##### 
   
   Topotable <- reactive({
-    select <- 'SELECT numTMPhobius AS "#TMPhobius", numICPhobius AS "#ICPhobius", numECPhobius AS "#ECPhobius", numTMTMHMM AS "numTMTMHMM", numICTMHMM AS "#ICTMHMM", numECTMHMM AS "#ECTMHMM", StringOutPhobius, StringOutTMHMM'
+    select <- 'SELECT numTMPhobius AS "#TMPhobius", numICPhobius AS "#ICPhobius", numECPhobius AS "#ECPhobius", numTMTMHMM AS "#TMTMHMM", numICTMHMM AS "#ICTMHMM", numECTMHMM AS "#ECTMHMM", StringOutPhobius, StringOutTMHMM'
     sql <- paste0(select, " FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
   })
@@ -71,7 +72,7 @@ function(input, output, session) {
 #    colnames(d) <- c("#MissedCleavages", "OKforMS", "NXS", "NXT", "NXC", "NXV", "C", "K")
   })
   
-  output$PepSummary <- renderTable({
+  output$PepSummary <- renderDataTable({
     PepSummarytable()
   })
   
@@ -373,6 +374,60 @@ function(input, output, session) {
   output$Batch_File_pep_dlbutton_tsv <- renderUI({
     req(input$quicklookup)
     downloadButton("Batch_File_pep_download_tsv", ".tsv", class="download_this")
+  })
+  
+  # Reverse <- observeEvent(input$button, {
+  #   beginSQL <- 'SELECT * FROM prot INNER JOIN pep ON prot.Accession = pep.Accession WHERE '
+  #   clause <- paste0(input$inputA, " ", input$inputB, "'", input$inputC, "'")
+  #   if( input$inputF != '' ) {
+  #     clause <- paste0(clause, ' AND pep.', input$inputD, " ", input$inputE, "'", input$inputF, "'")
+  #   }
+  #   sql <- paste0(beginSQL, clause, ";")
+  #   print(sql)
+  #   peps <- dbGetQuery(conn, sql)
+  #   print("OK")
+  #   beginSQL <- "SELECT COUNT(DISTINCT prot.Accession) FROM prot INNER JOIN pep ON prot.Accession = pep.Accession WHERE "
+  #   sql <- paste0(beginSQL, clause, ";")
+  #   cnt <- dbGetQuery(conn, sql)
+  #   print(cnt)
+  #   return(peps)
+  # })
+  # 
+  # output$Reverse <- renderDataTable({
+  #   req(input$inputC)
+  #   Reverse()
+  # })
+  
+  Reverse <- observeEvent(input$go, {
+    req(input$inputC)
+    beginSQL <- 'SELECT * FROM prot INNER JOIN pep ON prot.Accession = pep.Accession WHERE '
+    clause <- paste0(input$inputA, " ", input$inputB, "'", input$inputC, "'")
+    if( input$inputF != '' ) {
+      clause <- paste0(clause, ' AND pep.', input$inputD, " ", input$inputE, "'", input$inputF, "'")
+    }
+    if( input$inputI != '' ) {
+      clause <- paste0(clause, ' AND pep.', input$inputG, " ", input$inputH, "'", input$inputI, "'")
+    }
+    if( input$inputL != '' ) {
+      clause <- paste0(clause, ' AND pep.', input$inputJ, " ", input$inputK, "'", input$inputL, "'")
+    }
+    if( input$inputO != '' ) {
+      clause <- paste0(clause, ' AND pep.', input$inputM, " ", input$inputN, "'", input$inputO, "'")
+    }
+    if( input$inputR != '' ) {
+      clause <- paste0(clause, ' AND pep.', input$inputD, " ", input$inputE, "'", input$inputF, "'")
+    }
+    
+    sql <- paste0(beginSQL, clause, ";")
+    print(sql)
+    peps <- dbGetQuery(conn, sql)
+    print("OK")
+    
+    # beginSQL <- "SELECT COUNT(DISTINCT prot.Accession) FROM prot INNER JOIN pep ON prot.Accession = pep.Accession WHERE "
+    # sql <- paste0(beginSQL, clause, ";")
+    # cnt <- dbGetQuery(conn, sql)
+    # print(cnt)
+    output$Reverse <- renderDataTable({ peps  })
   })
   
 }
