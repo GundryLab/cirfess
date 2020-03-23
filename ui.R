@@ -2,6 +2,7 @@
 library(shiny)
 library(DT)
 library(rsconnect)
+library(plotly)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
 
@@ -62,7 +63,9 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
     "Single Protein Lookup",
     sidebarPanel(
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
-      em("Note: if no data appear after entering an accession, it is not one of the 20,405 human accessions in our database"  ),
+      actionButton("go", "Find"),
+      br(),
+      em("Note: if no data appear afterclicking Find, the accession is not one of the 20,405 human accessions in our database"  ),
       br(),
       br(),
       h5(class="text-info", "Key:"),
@@ -98,10 +101,10 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h5(class="text-info", "Topology Predictions"),
       tableOutput('Topo'),
       h5(class="text-info", "Peptide Summary"),
-      dataTableOutput('PepSummary')
+      dataTableOutput('PepSummary'),
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
-      
+      plotlyOutput('Motifs')
      )
   ),
   

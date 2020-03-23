@@ -3,6 +3,7 @@ library(RSQLite)
 library(shiny)
 library(dplyr)
 library(DT)
+library(plotly)
 #library(xlsx)
 
 conn <- dbConnect(RSQLite::SQLite(), "matt.db")
@@ -14,7 +15,7 @@ function(input, output, session) {
   
   ##### SPC Table ##### 
   
-  SPCtable <- reactive({ 
+  SPCtable <- eventReactive( input$go, { 
     sql <- paste0("SELECT Accession, SPC, SPCstring AS SPC_DB FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
   })
@@ -27,7 +28,7 @@ function(input, output, session) {
   
   ##### Signal Peptide Predictions ##### 
   
-  SigPeptable <- reactive({ 
+  SigPeptable <- eventReactive( input$go, { 
     sql <- paste0("SELECT SigPepPhobius, ScorePhobius, SigPepSignalP, ScoreSignalP, SigPepPrediSI, ScorePrediSI FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
   })
@@ -38,7 +39,7 @@ function(input, output, session) {
   
   ##### Topology Table ##### 
   
-  Topotable <- reactive({
+  Topotable <- eventReactive( input$go, {
     select <- 'SELECT numTMPhobius AS "#TMPhobius", numICPhobius AS "#ICPhobius", numECPhobius AS "#ECPhobius", numTMTMHMM AS "#TMTMHMM", numICTMHMM AS "#ICTMHMM", numECTMHMM AS "#ECTMHMM", StringOutPhobius, StringOutTMHMM'
     sql <- paste0(select, " FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
@@ -47,6 +48,48 @@ function(input, output, session) {
   output$Topo <- renderTable({
     Topotable()
   })
+  
+  tabulate <- function(All,Phob,Tmhmm) {
+    
+    all<-strsplit(as.character(All), ',')[[1]]
+    phob<-strsplit(as.character(Phob), ',')[[1]]
+    tmhmm<-strsplit(as.character(Tmhmm), ',')[[1]]
+    all<-all[!all=='n/a']
+    phob<-phob[!phob=='n/a']
+    tmhmm<-tmhmm[!tmhmm=='n/a']
+    
+    ec <- union(phob, tmhmm)
+    fphob <- setdiff(phob, tmhmm)
+    ftmhmm <- setdiff(tmhmm, phob)
+    nonec <- setdiff(all, ec)
+    return(c(length(all), length(fphob), length(ftmhmm), length(nonec)))
+  }
+  
+  MotifPlot <- eventReactive(input$go,{
+    sql <- paste0("SELECT motifsLocNXS, motifsLocPhobiusNXS, motifsLocTMHMMNXS, motifsLocNXT, motifsLocPhobiusNXT, motifsLocTMHMMNXT, motifsLocNXC, motifsLocPhobiusNXC, motifsLocTMHMMNXC,  motifsLocNXV, motifsLocPhobiusNXV, motifsLocTMHMMNXV, motifsLocC, motifsLocPhobiusC, motifsLocTMHMMC, motifsLocK, motifsLocPhobiusK, motifsLocTMHMMK FROM prot WHERE Accession = '" , toupper(input$swissprtID), "';")
+    result <- dbGetQuery(conn,sql)
+    M <- matrix(tabulate(result['motifsLocNXS'], result['motifsLocPhobiusNXS'], result['motifsLocTMHMMNXS']), ncol=4)
+    M <- rbind(M, tabulate(result['motifsLocNXT'], result['motifsLocPhobiusNXT'], result['motifsLocTMHMMNXT']))
+    M <- rbind(M, tabulate(result['motifsLocNXC'], result['motifsLocPhobiusNXC'], result['motifsLocTMHMMNXC']))
+    M <- rbind(M, tabulate(result['motifsLocNXV'], result['motifsLocPhobiusNXV'], result['motifsLocTMHMMNXV']))
+    M <- rbind(M, tabulate(result['motifsLocC'], result['motifsLocPhobiusC'], result['motifsLocTMHMMC']))
+    M <- rbind(M, tabulate(result['motifsLocK'], result['motifsLocPhobiusK'], result['motifsLocTMHMMK']))
+    motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
+    both <- M[,1]
+    phobius <- M[,2]
+    tmhmm <- M[,3]
+    neither <- M[,4]
+    data <- data.frame(motifs, both, phobius, tmhmm, neither)
+    fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC')
+    fig <- fig %>% add_trace(y = ~tmhmm, name = 'Predicted EC only by TMHMM')
+    fig <- fig %>% add_trace(y = ~phobius, name = 'Predicted EC only by Phobius')
+    fig <- fig %>% add_trace(y = ~both, name = 'Predicted EC by both Phobius and TMHMM')
+    fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
+  })
+  
+  output$Motifs <-renderPlotly(
+   MotifPlot() 
+  )
   
   # ##### Motif Summary Table ##### 
   # 
@@ -62,18 +105,18 @@ function(input, output, session) {
   
   ##### Peptide Summary Table ##### 
   
-  PepSummarytable <- reactive({
-    select <- 'SELECT numMissedCleavages AS MissedCleavages, OKforMS, numMotifsNXS, numMotifsNXT, numMotifsNXC, numMotifsNXV, numMotifsC, numMotifsK'
-#    sql <- paste0("SELECT * FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
-    sql <- paste0(select, " FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
-    peps <- dbGetQuery(conn, sql)
-    data.frame(summarise(group_by(peps, MissedCleavages, OKforMS), NXS=sum(numMotifsNXS), NXT=sum(numMotifsNXT), NXC=sum(numMotifsNXC), NXV=sum(numMotifsNXV), C=sum(numMotifsC), K=sum(numMotifsK)))
-#    colnames(d) <- c("#MissedCleavages", "OKforMS", "NXS", "NXT", "NXC", "NXV", "C", "K")
-  })
-  
-  output$PepSummary <- renderDataTable({
-    PepSummarytable()
-  })
+#   PepSummarytable <- reactive({
+#     select <- 'SELECT numMissedCleavages AS MissedCleavages, OKforMS, numMotifsNXS, numMotifsNXT, numMotifsNXC, numMotifsNXV, numMotifsC, numMotifsK'
+# #    sql <- paste0("SELECT * FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
+#     sql <- paste0(select, " FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
+#     peps <- dbGetQuery(conn, sql)
+#     data.frame(summarise(group_by(peps, MissedCleavages, OKforMS), NXS=sum(numMotifsNXS), NXT=sum(numMotifsNXT), NXC=sum(numMotifsNXC), NXV=sum(numMotifsNXV), C=sum(numMotifsC), K=sum(numMotifsK)))
+# #    colnames(d) <- c("#MissedCleavages", "OKforMS", "NXS", "NXT", "NXC", "NXV", "C", "K")
+#   })
+#   
+#   output$PepSummary <- renderDataTable({
+#     PepSummarytable()
+#   })
   
   translateSPC <- function(s) {
     s<-gsub("BF","Surfy",s)
