@@ -30,7 +30,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       };
       '))),
     
-    tags$img(src="website_homepage.svg",  width="25%",align="right"),
+    tags$img(src="Fig1_CIRFESS.png",  width="33%",align="right"),
     h4("Welcome to ", span(class ="text-success", "CIRFESS"),"!"),
 #     p(tags$i("Helping Mass Spectrometrists find peptides since 2020")),
 #    p(tags$u("C"), "ompiled ", tags$u("I"), "nteractive ", tags$u("R"), "esource ", tags$u("f"), "or ", tags$u("E"), "xtracellular and ", tags$u("S"), "urface ", tags$u("S"), "tudies (CIRFESS) integrates multiple 
@@ -104,8 +104,11 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       dataTableOutput('PepSummary'),
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
-      plotlyOutput('Motifs')
-     )
+      column( 5, plotlyOutput('Motifs', width = '400px') ),
+      column( 5, plotlyOutput('OK', width = '400px') ),
+      column( 5, plotlyOutput('pepPlot', width = '400px') )
+
+    )
   ),
   
 

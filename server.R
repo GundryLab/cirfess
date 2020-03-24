@@ -59,10 +59,11 @@ function(input, output, session) {
     tmhmm<-tmhmm[!tmhmm=='n/a']
     
     ec <- union(phob, tmhmm)
+    both <- intersect(phob, tmhmm)
     fphob <- setdiff(phob, tmhmm)
     ftmhmm <- setdiff(tmhmm, phob)
     nonec <- setdiff(all, ec)
-    return(c(length(all), length(fphob), length(ftmhmm), length(nonec)))
+    return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
   }
   
   MotifPlot <- eventReactive(input$go,{
@@ -87,8 +88,97 @@ function(input, output, session) {
     fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
   })
   
+
   output$Motifs <-renderPlotly(
    MotifPlot() 
+  )
+  
+  OKPlot <- eventReactive(input$go, {
+    sql <- paste0( "select numPepMC0 - numPepOKMC0 as NotOK0, numPepOKMC0, numPepMC1 - numPepOKMC1 as NotOK1, numPepOKMC1, numPepMC2 - numPepOKMC2 AS NotOK2, numPepOKMC2 FROM prot WHERE Accession = '", toupper(input$swissprtID), "';" )
+    result <- dbGetQuery(conn,sql)
+
+    M <- matrix(result, ncol=2, byrow = TRUE)
+    d <- data.frame(M)
+    colnames(d)<-c('notOK', 'OK')
+    d$'MC' <-c('0', '<=1', '<=2')
+    fig <- plot_ly(d, x = ~MC, y = ~notOK, type = 'bar', name = 'not OK')
+    fig <- fig %>% add_trace(y = ~OK, name = 'OK for MS')
+    fig <- fig %>% layout(yaxis = list(title = 'Number of Peptides'), barmode = 'stack')
+  })
+  
+  output$OK <-renderPlotly(
+    OKPlot() 
+  )
+  
+  peptabulate <- function(all,phob,tmhmm) {
+    ec <- union(phob, tmhmm)
+    both <- intersect(phob, tmhmm)
+    fphob <- setdiff(phob, tmhmm)
+    ftmhmm <- setdiff(tmhmm, phob)
+    nonec <- setdiff(all, ec)
+    return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
+  }  
+  
+  
+  # in the long list of gaffes that prove I am not an R programmer, I believe none is greater than the following:
+  pepPlot <- eventReactive(input$go, {
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXS > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXS > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXS > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- matrix(peptabulate(all,phob,tmhmm), ncol=4)
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXT > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXT > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXT > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- rbind(M, peptabulate(all, phob, tmhmm))
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXC > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXC > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXC > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- rbind(M, peptabulate(all, phob, tmhmm))
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXV > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXV > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXV > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- rbind(M, peptabulate(all, phob, tmhmm))
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsC > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusC > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMC > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- rbind(M, peptabulate(all, phob, tmhmm))
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsK > 0 and OKforMS > 0;")
+    all <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusK > 0 and OKforMS > 0;")
+    phob <- dbGetQuery(conn,sql)[[1]]
+    sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMK > 0 and OKforMS > 0;")
+    tmhmm <- dbGetQuery(conn,sql)[[1]]
+    M <- rbind(M, peptabulate(all, phob, tmhmm))
+    motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
+    both <- M[,1]
+    phobius <- M[,2]
+    tmhmm <- M[,3]
+    neither <- M[,4]
+    data <- data.frame(motifs, both, phobius, tmhmm, neither)
+    fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC')
+    fig <- fig %>% add_trace(y = ~tmhmm, name = 'Predicted EC only by TMHMM')
+    fig <- fig %>% add_trace(y = ~phobius, name = 'Predicted EC only by Phobius')
+    fig <- fig %>% add_trace(y = ~both, name = 'Predicted EC by both Phobius and TMHMM')
+    fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
+  })
+
+  output$pepPlot <-renderPlotly(
+    pepPlot() 
   )
   
   # ##### Motif Summary Table ##### 
@@ -205,7 +295,6 @@ function(input, output, session) {
       l <- paste( unlist(accs), collapse="', '")
       sql <- paste0( sql, l)
       sql <- paste0(sql, "');")
-#      print(sql)
       q <-dbGetQuery(conn, sql)
     }
     return(q)
@@ -219,7 +308,6 @@ function(input, output, session) {
       l <- paste( unlist(accs), collapse="', '")
       sql <- paste0( sql, l)
       sql <- paste0(sql, "');")
-#      print(sql)
       q <-dbGetQuery(conn, sql)
     }
     return(q)
