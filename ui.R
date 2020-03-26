@@ -29,6 +29,18 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
         }
       };
       '))),
+
+    # JavaScript to make it so when the enter button is clicked,  the Find button runs (on the single
+    # protein lookup page).  It uses jquery functionality built into shiny - that the $() notation.
+    # So with every keypress we look to see if the keypress was the enter key (keycode 13) AND if 
+    # the textbox (swissprtID) had the focus at that time.  If so, same as clicking the Find button.
+    tags$head(tags$script(HTML('
+        $(document).keyup(function(event) {
+        if ($("#swissprtID").is(":focus") && (event.keyCode == 13)) {
+          $("#go").click();
+        }
+      });
+      '))),
     
     tags$img(src="Fig1_CIRFESS.png",  width="33%",align="right"),
     h4("Welcome to ", span(class ="text-success", "CIRFESS"),"!"),
@@ -65,7 +77,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
       actionButton("go", "Find"),
       br(),
-      em("Note: if no data appear afterclicking Find, the accession is not one of the 20,405 human accessions in our database"  ),
+      em("Note: if no data appear after clicking Find, the accession is not one of the 20,405 human accessions in our database"  ),
       br(),
       br(),
       h5(class="text-info", "Key:"),
