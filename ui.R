@@ -73,7 +73,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
 
   tabPanel(
     "Single Protein Lookup",
-    sidebarPanel(
+    sidebarPanel( width = 2,
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
       actionButton("go", "Find"),
       br(),
@@ -106,19 +106,30 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
     ),
     
     mainPanel(
-      h5(class="text-info", "SPC Information"),
-      tableOutput('SPC'),
-      h5(class="text-info", "Signal  Peptide Predictions"),
-      tableOutput('SigPep'),
+      fluidRow(
+      column(width=3, h5(class="text-info", "SPC Information"),
+      tableOutput('SPC')),
+      column(width=4, h5(class="text-info", "Signal  Peptide Predictions"),
+      tableOutput('SigPep')),
       h5(class="text-info", "Topology Predictions"),
-      tableOutput('Topo'),
-      h5(class="text-info", "Peptide Summary"),
+      column(width=5,tableOutput('Topo')) ),
+      h5(class="text-info", "Peptides Predicted to be Present in Extracellular MS Experiment"),
+      h6(class="text-info", "These Peptides have consensus motifs, proper M/Z Ratio, and predicted extracellular by one or more prediction methods"),
+      
+#      tableOutput('Phobius'),
+#      column( 6, tableOutput('TMHMM)') ),
       dataTableOutput('PepSummary'),
 #      h5(class="text-info", "Motif Summary"),
 #      tableOutput('MotifSummary')
-      column( 5, plotlyOutput('Motifs', width = '400px') ),
-      column( 5, plotlyOutput('OK', width = '400px') ),
-      column( 5, plotlyOutput('pepPlot', width = '400px') )
+#      column( 8, plotlyOutput('Motifs', width = '400px') ),
+#      column( 8, plotlyOutput('OK', width = '400px') ),
+#     column( 6, plotlyOutput('pepPlot', width = '400px') ),
+fluidRow(      column( width=5, tableOutput('pepPhobius') ),
+      column( width=5, offset=1, tableOutput('pepTMHMM') )),
+#      tableOutput('pepPhobius'),
+#      tableOutput('pepTMHMM'),
+      plotlyOutput('pepPlot')
+#      tableOutput('tabletest')
 
     )
   ),
@@ -258,7 +269,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h4("How to reference ", span(class ="text-success", "CIRFESS") ),
       p("If you use CIRFESS in your work, please cite the original manuscript:"),
       p("Waas M, Littrell J, Gundry RL, CIRFESS: An interactive resource for querying the set of 
-        theoretically detectable peptides for cell surface and extracellular enrichment proteomic studies, ", tags$a(href="https://www.biorxiv.org/content/10.1101/2020.01.22.916148v1.", "https://www.biorxiv.org/content/10.1101/2020.01.22.916148v1.")) 
+        theoretically detectable peptides for cell surface and extracellular enrichment proteomic studies, ", tags$a(href="https://pubmed.ncbi.nlm.nih.gov/32212654/", "https://pubmed.ncbi.nlm.nih.gov/32212654/.")) 
 #        tags$a(href="https://doi.org/10.1101/575969", "https://doi.org/10.1101/575969"))
     ),
     br(),
