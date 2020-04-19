@@ -11,12 +11,29 @@ conn <- dbConnect(RSQLite::SQLite(), "matt.db")
 
 
 function(input, output, session) {
+
+##################################################  
+###########    Single Protein Lookup   ###########
+##################################################  
   
-  ##########    Single Protein Lookup   ##########
-  
+#### This function gets called by all render* functions to see if the accession exists ####
+    exists <- function(acc){
+    sql <- paste0("SELECT count(*) AS cnt FROM prot WHERE Accession = '", acc, "';")
+    r <- dbGetQuery(conn, sql)
+    if(r$cnt[1]==0) {
+      return(NULL)
+    } else {
+    return(r$cnt[1])
+    }
+  }
+
+######################    Protein Level Stuff   ######################
+    
+      
   ##### SPC Table ##### 
   
   SPCtable <- eventReactive( input$go, { 
+    req(exists(toupper(input$swissprtID)))
     sql <- paste0("SELECT Accession, SPC, SPCstring AS SPC_DB FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     dbGetQuery(conn, sql)
   })
@@ -30,6 +47,7 @@ function(input, output, session) {
   ##### Signal Peptide Predictions ##### 
   
   SigPeptable <- eventReactive( input$go, { 
+    req(exists(toupper(input$swissprtID)))
     sql <- paste0("SELECT SigPepPhobius, ScorePhobius, SigPepSignalP, ScoreSignalP, SigPepPrediSI, ScorePrediSI FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     r <- dbGetQuery(conn, sql)
     Method<-c('Phobius', 'SignalP', 'PrediSI')
@@ -45,6 +63,7 @@ function(input, output, session) {
   ##### Topology Table ##### 
   
   Topotable <- eventReactive( input$go, {
+    req(exists(toupper(input$swissprtID)))
     select <- 'SELECT numTMPhobius, numICPhobius, numECPhobius, numTMTMHMM, numICTMHMM, numECTMHMM, StringOutPhobius, StringOutTMHMM'
     sql <- paste0(select, " FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
     r <- dbGetQuery(conn, sql)
@@ -61,6 +80,119 @@ function(input, output, session) {
   }, rownames = TRUE, striped = TRUE, hover=TRUE, bordered = TRUE)
   
   
+######################    Peptide Level Stuff   ######################
+  
+  getPepCount <- function(l, a, c, t) {
+    o <- c()
+    for (m in l) {
+      sql<-paste0("SELECT count(*) FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = ", c, " AND numMotifs", t, m, " > 0;")
+      r <- dbGetQuery(conn, sql)[[1]]
+      o <- c(o,r)
+    }
+    return(o)
+  }
+  
+  pepTablePhobius <- eventReactive(input$go,{
+    req(exists(toupper(input$swissprtID)))
+    motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
+    mc0 <- getPepCount(motif, toupper(input$swissprtID), 0, 'Phobius')
+    mc1 <- getPepCount(motif, toupper(input$swissprtID), 1, 'Phobius')
+    mc2 <- getPepCount(motif, toupper(input$swissprtID), 2, 'Phobius')
+    df <- data.frame(motif, mc0, mc1, mc2)
+    #  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
+    colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
+    return(df)
+  })
+  
+  pepTableTMHMM <- eventReactive(input$go,{
+    req(exists(toupper(input$swissprtID)))
+    motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
+    mc0 <- getPepCount(motif, toupper(input$swissprtID), 0, 'TMHMM')
+    mc1 <- getPepCount(motif, toupper(input$swissprtID), 1, 'TMHMM')
+    mc2 <- getPepCount(motif, toupper(input$swissprtID), 2, 'TMHMM')
+    df <- data.frame(motif, mc0, mc1, mc2)
+    #  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
+    colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
+    return(df)
+  })
+  
+  getPepList <- function(a, motif, method) {
+    sql<-paste0("SELECT ID FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = 0 AND numMotifs", method, motif, " > 0;")
+    r <- dbGetQuery(conn, sql)[[1]]
+    return(r)
+  }
+  
+  
+  pepPlot <- eventReactive(input$go,{
+    acc = toupper(input$swissprtID)
+    motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
+    M<-matrix(ncol=4)
+    for (motif in motifs) { 
+      M<-rbind(M, peptabulate(getPepList(toupper(input$swissprtID), motif, ''), getPepList(toupper(input$swissprtID), motif, 'Phobius'), getPepList(toupper(input$swissprtID), motif, 'TMHMM'))) 
+    }
+    M<-M[-1,]
+    both <- M[,1]
+    phobius <- M[,2]
+    tmhmm <- M[,3]
+    neither <- M[,4]
+    data <- data.frame(motifs, both, phobius, tmhmm, neither)
+    fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC', marker=list(color=c('#9987C8')))
+    fig <- fig %>% add_trace(y = ~tmhmm, name = 'TMHMM only', marker = list(color=c('#ADF5D1')))
+    fig <- fig %>% add_trace(y = ~phobius, name = 'Phobius only', marker=list(color=c('#5CEBA3')))
+    fig <- fig %>% add_trace(y = ~both, name = 'Phobius and TMHMM', marker=list(color=c('#4DB07E')))
+    fig <- fig %>% layout(yaxis = list(title = 'Number of Peptides Containing Motif'), barmode = 'stack', xaxis=list(categoryorder = "array", categoryarray = ~motifs))  
+  })  
+  
+  peptabulate <- function(all,phob,tmhmm) {
+    ec <- union(phob, tmhmm)
+    both <- intersect(phob, tmhmm)
+    fphob <- setdiff(phob, tmhmm)
+    ftmhmm <- setdiff(tmhmm, phob)
+    nonec <- setdiff(all, ec)
+    return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
+  }  
+  
+  output$pepPlot <-renderPlotly({
+    req( exists(toupper(input$swissprtID) ) )
+    pepPlot()
+  })
+  
+  output$pepPhobius <-renderTable({
+    xtable(pepTablePhobius())
+  },
+  #size="footnotesize", #Change size; useful for bigger tables
+  include.rownames=FALSE, #Don't print rownames
+  caption.placement="top",
+  include.colnames=FALSE,
+  add.to.row = list(pos = list(0),
+                    command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
+<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
+  ),striped=TRUE, bordered=TRUE)
+  
+  
+  
+  output$pepTMHMM <-renderTable({
+    xtable(pepTableTMHMM())
+  },
+  #size="footnotesize", #Change size; useful for bigger tables
+  include.rownames=FALSE, #Don't print rownames
+  caption.placement="top",
+  include.colnames=FALSE,
+  add.to.row = list(pos = list(0),
+                    command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
+<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
+  ),striped=TRUE, bordered=TRUE)
+  
+warningMsg <- eventReactive(input$go,{  
+  if( is.null( exists(toupper(input$swissprtID)) ) ){
+    paste0("The accession, ", toupper(input$swissprtID), ", is not in our database")
+  }
+})
+
+output$txtWarning <- renderText({
+  warningMsg()
+})
+
 ###################################################################################################
 
 # phobiusTable <- eventReactive(input$go, {
@@ -95,113 +227,6 @@ function(input, output, session) {
 #   phobiusTable()}, rownames=TRUE, striped = TRUE, hover = TRUE, bordered = TRUE, align='c'
 # )
 
-  
-  
-  
-###################################################################################################
-  
-getPepCount <- function(l, a, c, t) {
-  o <- c()
-  for (m in l) {
-    sql<-paste0("SELECT count(*) FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = ", c, " AND numMotifs", t, m, " > 0;")
-    r <- dbGetQuery(conn, sql)[[1]]
-    o <- c(o,r)
-  }
-  return(o)
-}
-
-pepTablePhobius <- eventReactive(input$go,{
-  motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
-  mc0 <- getPepCount(motif, input$swissprtID, 0, 'Phobius')
-  mc1 <- getPepCount(motif, input$swissprtID, 1, 'Phobius')
-  mc2 <- getPepCount(motif, input$swissprtID, 2, 'Phobius')
-  df <- data.frame(motif, mc0, mc1, mc2)
-#  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
-  colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
-  return(df)
-})
-
-pepTableTMHMM <- eventReactive(input$go,{
-  motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
-  mc0 <- getPepCount(motif, input$swissprtID, 0, 'TMHMM')
-  mc1 <- getPepCount(motif, input$swissprtID, 1, 'TMHMM')
-  mc2 <- getPepCount(motif, input$swissprtID, 2, 'TMHMM')
-  df <- data.frame(motif, mc0, mc1, mc2)
-#  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
-  colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
-  return(df)
-})
-
-getPepList <- function(a, motif, method) {
-  sql<-paste0("SELECT ID FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = 0 AND numMotifs", method, motif, " > 0;")
-  r <- dbGetQuery(conn, sql)[[1]]
-  return(r)
-}
-
-
-pepPlot <- eventReactive(input$go,{ 
-  motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
-  M<-matrix(ncol=4)
-  for (motif in motifs) { 
-    M<-rbind(M, peptabulate(getPepList(input$swissprtID, motif, ''), getPepList(input$swissprtID, motif, 'Phobius'), getPepList(input$swissprtID, motif, 'TMHMM'))) 
-  }
-  M<-M[-1,]
-  both <- M[,1]
-  phobius <- M[,2]
-  tmhmm <- M[,3]
-  neither <- M[,4]
-  data <- data.frame(motifs, both, phobius, tmhmm, neither)
-  print(data)
-  # fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC')
-  # fig <- fig %>% add_trace(y = ~tmhmm, name = 'Predicted EC only by TMHMM')
-  # fig <- fig %>% add_trace(y = ~phobius, name = 'Predicted EC only by Phobius')
-  # fig <- fig %>% add_trace(y = ~both, name = 'Predicted EC by both Phobius and TMHMM')
-  # fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
-  fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC', marker=list(color=c('#9987C8')))
-  fig <- fig %>% add_trace(y = ~tmhmm, name = 'TMHMM only', marker = list(color=c('#ADF5D1')))
-  fig <- fig %>% add_trace(y = ~phobius, name = 'Phobius only', marker=list(color=c('#5CEBA3')))
-  fig <- fig %>% add_trace(y = ~both, name = 'Phobius and TMHMM', marker=list(color=c('#4DB07E')))
-  fig <- fig %>% layout(yaxis = list(title = 'Number of Peptides Containing Motif'), barmode = 'stack', xaxis=list(categoryorder = "array", categoryarray = ~motifs))  
-})  
-
-peptabulate <- function(all,phob,tmhmm) {
-  ec <- union(phob, tmhmm)
-  both <- intersect(phob, tmhmm)
-  fphob <- setdiff(phob, tmhmm)
-  ftmhmm <- setdiff(tmhmm, phob)
-  nonec <- setdiff(all, ec)
-  return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
-}  
-
-output$pepPlot <-renderPlotly(
-  pepPlot()
-)
-
-output$pepPhobius <-renderTable({
-  xtable(pepTablePhobius())
-},
-#size="footnotesize", #Change size; useful for bigger tables
-include.rownames=FALSE, #Don't print rownames
-caption.placement="top",
-include.colnames=FALSE,
-add.to.row = list(pos = list(0),
-                  command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
-<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
-),striped=TRUE, bordered=TRUE)
-
-
-
-output$pepTMHMM <-renderTable({
-  xtable(pepTableTMHMM())
-},
-#size="footnotesize", #Change size; useful for bigger tables
-include.rownames=FALSE, #Don't print rownames
-caption.placement="top",
-include.colnames=FALSE,
-add.to.row = list(pos = list(0),
-                  command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
-<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
-),striped=TRUE, bordered=TRUE)
 
 
   # tabulate <- function(All,Phob,Tmhmm) {
@@ -379,14 +404,6 @@ add.to.row = list(pos = list(0),
     s<-gsub("DR","Diaz Ramos",s)
   }
   
-    ##########          Batch Lookup TextArea         ##########
-
-  
-  
-  
-  ##########          Bulk Lookup TextArea         ##########
-  
-  
 
 
   # # Downloadable xlsx of selected dataset
@@ -405,9 +422,9 @@ add.to.row = list(pos = list(0),
   # })
   
 
-  
-  ##########          Batch Lookup TextArea         ##########
-  
+##################################################  
+###########       Batch  Lookup        ###########
+##################################################  
   
   pepSQL <- function(pepOptions, cleavages) {
     sql <- 'SELECT Accession, ID'

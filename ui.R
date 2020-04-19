@@ -128,6 +128,7 @@ fluidRow(      column( width=5, tableOutput('pepPhobius') ),
       column( width=5, offset=1, tableOutput('pepTMHMM') )),
 #      tableOutput('pepPhobius'),
 #      tableOutput('pepTMHMM'),
+      textOutput('txtWarning'),
       plotlyOutput('pepPlot')
 #      tableOutput('tabletest')
 
