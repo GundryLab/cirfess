@@ -492,6 +492,15 @@ generateProtter <- eventReactive(input$go, {
     }
   }
   
+  sql <- paste0("SELECT motifsLocPhobiusNXS, motifsLocPhobiusNXT, motifsLocPhobiusNXC, motifsLocPhobiusNXV, motifsLocPhobiusC, motifsLocPhobiusK From Prot where Accession ='", toupper(input$swissprtID), "';")
+  r <- dbGetQuery(conn, sql)
+  locs <- c()
+  for( motif in c('motifsLocPhobiusNXS', 'motifsLocPhobiusNXT', 'motifsLocPhobiusNXC', 'motifsLocPhobiusNXV', 'motifsLocPhobiusC', 'motifsLocPhobiusK') ){
+    loc <- strsplit(as.character(r[motif]), ',')[[1]]
+    loc<-loc[!loc=='n/a']
+    locs <- union(locs, loc)
+  } 
+  
   sql <- paste0("SELECT Length From Prot where Accession ='", toupper(input$swissprtID), "';")
   len <- dbGetQuery(conn, sql)[[1]]
   
@@ -534,12 +543,14 @@ generateProtter <- eventReactive(input$go, {
   if( !is.null(nck) ){
     nck <- paste0('&n:N%20or%20C%20or%20K%20Capture,bc:9E7EB9,fc:9E7EB9,cc:FFFFFF=', gsub(' ', '', toString(nck)))
   }
+  m <- paste0('&n:Consensus%20Motif,s:diamond=', gsub(' ', '', toString(locs)))
   # else {
   #   nck<-''
   # }
   sp <- '&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:signal%20peptide,fc:salmon,cc:white,bc:salmon=UP.SIGNAL'
   s <- paste0("http://wlab.ethz.ch/protter/create?up=", input$swissprtID, "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
-  s <- paste0(s, zero, n, c, k, nc, nk, nck, sp, '&format=svg')
+  s <- paste0(s, zero, n, c, k, nc, nk, nck, m, sp, '&format=svg')
+  print(s)
   im <-GET(s)
   return(im)
 })
