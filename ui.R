@@ -6,6 +6,10 @@ library(plotly)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
 
+  # requirements for protvista.  js and css in www/, json files in www/data/
+  tags$head(tags$script(src="protvista.js")),
+  tags$head(tags$link(href="main.css", rel="stylesheet")),
+                   
                    
                      
   ####################          Home               #######################
@@ -41,6 +45,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
         }
       });
       '))),
+    
     
     tags$img(src="Fig1_CIRFESS.png",  width="33%",align="right"),
     h4("Welcome to ", span(class ="text-success", "CIRFESS"),"!"),
@@ -106,6 +111,9 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
     ),
     
     mainPanel(
+      tabsetPanel(type = "tabs",
+                  tabPanel(
+                    "Information",
       fluidRow(
       column(width=3, h5(class="text-info", "SPC Information"),
       tableOutput('SPC')),
@@ -131,7 +139,35 @@ fluidRow(      column( width=5, tableOutput('pepPhobius') ),
       textOutput('txtWarning'),
       plotlyOutput('pepPlot')
 #      tableOutput('tabletest')
-
+                  ),
+tabPanel(
+  "Visualizations",
+  div(id="pvDiv"),
+  textOutput('txtVWarning'),
+  imageOutput("image1"),
+  
+  # This is the javascript to run protvista on the single protein lookup visualization page.  The
+  # The full protvista js library is in a file in the www directory.  There is an associated css
+  # file called main.css that goes with it.  
+  tags$script("go.onclick = function() {
+              var uniID = swissprtID.value
+              var pvDiv = document.getElementById('pvDiv');
+              var ProtVista = require('ProtVista');
+              var instance = new ProtVista({
+                el: pvDiv,
+                uniprotacc: uniID,
+                defaultSources: false,
+                customDataSource: {
+                  url: './data/',
+                  useExtension: true
+                },
+                overwritePredictions: true,
+              });
+          }"        
+  )
+  
+)
+)
     )
   ),
   

@@ -5,6 +5,7 @@ library(dplyr)
 library(DT)
 library(plotly)
 library(xtable)
+library(httr)
 #library(xlsx)
 
 conn <- dbConnect(RSQLite::SQLite(), "matt.db")
@@ -421,6 +422,148 @@ output$txtWarning <- renderText({
   #   downloadButton("xlsx_download", ".xlsx", class="download_this")
   # })
   
+
+##################################################  
+###########       Visualizations        ###########
+
+generateProtter <- eventReactive(input$go, {
+  req(exists(toupper(input$swissprtID)))
+  
+  startSQL <-"
+  SELECT
+  range,
+  CASE
+  WHEN numMotifsPhobiusK > 0 THEN
+  1
+  ELSE
+  0
+  END K,
+  CASE
+  WHEN numMotifsPhobiusC > 0 THEN
+  1
+  ELSE
+  0
+  END C,
+  CASE
+  WHEN numMotifsPhobiusNXS > 0  OR numMotifsPhobiusNXT > 0 OR numMotifsPhobiusNXC > 0 OR numMotifsPhobiusNXV > 0 THEN
+  1
+  ELSE
+  0
+  END N
+  FROM
+  pep
+  WHERE
+  Accession = '"
+  
+  endSQL <- "' AND
+  OKforMS != 0 AND
+  numMissedCleavages = 0;"
+  
+  sql <- paste0(startSQL, input$swissprtID, endSQL)
+  
+  n <- c()
+  k <- c()
+  c <- c()
+  nc <- c()
+  nk <-c ()
+  ck <-c ()
+  nck <- c()
+  zero <- c()
+  
+  df<-dbGetQuery(conn, sql)
+  
+  for (i in 1:nrow(df)) {
+    if( df[i,]$N==1 & df[i,]$K==0 & df[i,]$C == 0 ) {
+      n <- c( n, df[i,]$range )
+    } else if( df[i,]$N==0 & df[i,]$K==1 & df[i,]$C == 0 ) {
+      k <- c( k, df[i,]$range )
+    } else if( df[i,]$N==0 & df[i,]$K==0 & df[i,]$C == 1 ) {
+      c <- c( c, df[i,]$range )
+    } else if( df[i,]$N==1 & df[i,]$K==1 & df[i,]$C == 0 ) {
+      nk <- c( nk, df[i,]$range )
+    } else if( df[i,]$N==1 & df[i,]$K==0 & df[i,]$C == 1 ) {
+      nc <- c( nc, df[i,]$range )
+    } else if( df[i,]$N==0 & df[i,]$K==1 & df[i,]$C == 1 ) {
+      ck <- c( ck, df[i,]$range )
+    } else if( df[i,]$N==1 & df[i,]$K==1 & df[i,]$C == 1 ) {
+      nck <- c( nck, df[i,]$range )
+    } else {
+      zero <- c( zero, df[i,]$range )
+    }
+  }
+  
+  sql <- paste0("SELECT Length From Prot where Accession ='", toupper(input$swissprtID), "';")
+  len <- dbGetQuery(conn, sql)[[1]]
+  
+  zero <- paste0('&n:Not%20Captured%20or%20Not%20OK,bc:FFFFFF,fc:D0D0D0=1-', len)
+  if( !is.null(n) ){
+    n <- paste0('&n:N%20Capture,bc:507F84,fc:507F84,cc:FFFFFF=', gsub(' ', '', toString(n)))
+  } else {
+    n<-c('')
+  }
+  if( !is.null(c) ){
+    c <- paste0('&n:C%20Capture,bc:F9DDA2,fc:F9DDA2=', gsub(' ', '', toString(c)))
+  }
+  # else {
+  #   c<-''
+  # }
+  if( !is.null(k) ){
+    k <- paste0('&n:K%20Capture,bc:D8D8ED,fc:D8D8ED=', gsub(' ', '', toString(k)))    
+  }
+  # else {
+  #   k<-''
+  # }
+  if( !is.null(nc) ){
+    nc <- paste0('&n:N%20or%20C%20Capture,bc:A99F85,fc:A99F85=', gsub(' ', '', toString(nc)))
+  }
+  # else {
+  #   nc<-''
+  # }
+  if( !is.null(nk) ){
+    nk <- paste0('&n:N%20or%20K%20Capture,bc:5E6184,fc:5E6184,cc:FFFFFF=', gsub(' ', '', toString(nk)))    
+  }
+  # else {
+  #   nk<-''
+  # }
+  if( !is.null(ck) ){
+    ck <- paste0('&n:C%20or%20K%20Capture,bc:B6D1A8,fc:B6D1A8=', gsub(' ', '', toString(ck)))
+  }
+  # else {
+  #   ck<-''
+  # }
+  if( !is.null(nck) ){
+    nck <- paste0('&n:N%20or%20C%20or%20K%20Capture,bc:9E7EB9,fc:9E7EB9,cc:FFFFFF=', gsub(' ', '', toString(nck)))
+  }
+  # else {
+  #   nck<-''
+  # }
+  sp <- '&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:signal%20peptide,fc:salmon,cc:white,bc:salmon=UP.SIGNAL'
+  s <- paste0("http://wlab.ethz.ch/protter/create?up=", input$swissprtID, "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
+  s <- paste0(s, zero, n, c, k, nc, nk, nck, sp, '&format=svg')
+  im <-GET(s)
+  return(im)
+})
+
+output$image1 <- renderImage({
+  image <- generateProtter()
+  writeBin(image$content, 'test.svg')
+  
+  list(src = 'test.svg',
+       contentType = "image/svg+xml",
+       width = "120%",
+       alt = "This is alternate text")
+  
+}, deleteFile = TRUE)
+
+warningVMsg <- eventReactive(input$go,{  
+  if( is.null( exists(toupper(input$swissprtID)) ) ){
+    paste0("The accession, ", toupper(input$swissprtID), ", is not in our database")
+  }
+})
+
+output$txtVWarning <- renderText({
+  warningVMsg()
+})
 
 ##################################################  
 ###########       Batch  Lookup        ###########
