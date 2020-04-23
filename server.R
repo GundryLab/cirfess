@@ -8,6 +8,8 @@ library(xtable)
 library(httr)
 #library(xlsx)
 
+
+unzip('all.zip')
 conn <- dbConnect(RSQLite::SQLite(), "matt.db")
 
 
@@ -550,7 +552,6 @@ generateProtter <- eventReactive(input$go, {
   sp <- '&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:signal%20peptide,fc:salmon,cc:white,bc:salmon=UP.SIGNAL'
   s <- paste0("http://wlab.ethz.ch/protter/create?up=", input$swissprtID, "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
   s <- paste0(s, zero, n, c, k, nc, nk, nck, m, sp, '&format=svg')
-  print(s)
   im <-GET(s)
   return(im)
 })
