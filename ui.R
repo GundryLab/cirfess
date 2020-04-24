@@ -250,9 +250,17 @@ tabPanel(
                       ". Under 'Select options', select your ID type in the 'From' field and then 'UniProt KB'
                       in the 'To' field."),
                     br(),
+                    p("The results will  be displayed on the screen and can be downloaded as either csv or tsv files."),
                     br(),
-                    p("The results will  be displayed on the screen and can be downloaded as either csv or tsv files.")
-#                    p("With this method, the original upload file will be returned as a downloadable csv file which includes a column containing SPC Scores appended to the original input file.")
+                    h4("Legends"),
+                    p("There are two sets of results.  Each ", em("protein"), " will have data associated with it - signal peptide predictions, 
+                      number of NXS motifs, SPC score, etc. Similiarly, each ", em("peptide"), " from those proteins will also have data assoctiated 
+                      with them - length, location of each consensus motif, phobius and TMHMM predictions, etc.  These files will explain the data 
+                      in the fields."),
+                    a(href="Legend_CIRFESS_ProteinLevel.pdf", "Proteins"),
+                    br(),
+                    a(href="legend_CIRFESS_peptidelevel.pdf", "Peptides")
+                    
                   ),
                   tabPanel(
                     "Output Option 1",
