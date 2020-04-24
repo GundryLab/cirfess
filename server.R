@@ -428,6 +428,24 @@ output$txtWarning <- renderText({
 ##################################################  
 ###########       Visualizations        ###########
 
+generateProtvistaTitle <- eventReactive(input$go, {
+  req(exists(toupper(input$swissprtID)))
+  tags$a(href=paste0('https://www.uniprot.org/uniprot/', toupper(input$swissprtID), '/protvista'), paste0("Protvista: ", toupper(input$swissprtID)) )
+})
+
+output$protvista <- renderUI({
+  h3( generateProtvistaTitle() )
+})
+
+generateProtterTitle <- eventReactive(input$go, {
+  req(exists(toupper(input$swissprtID)))
+  tags$a(href=paste0('http://wlab.ethz.ch/protter/#up=', toupper(input$swissprtID), '&tm=auto&mc=lightsalmon&lc=blue&tml=numcount&numbers&legend&n:signal%20peptide,fc:red,bc:red=UP.SIGNAL&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:variants,s:diamond,fc:orange,bc:orange=UP.VARIANT&n:PTMs,s:box,fc:forestgreen,bc:forestgreen=UP.CARBOHYD,UP.MOD_RES&format=svg'), paste0("Protter: ", toupper(input$swissprtID)) )
+})
+
+output$protter <- renderUI({
+  h3( generateProtterTitle() )
+})
+
 generateProtter <- eventReactive(input$go, {
   req(exists(toupper(input$swissprtID)))
   

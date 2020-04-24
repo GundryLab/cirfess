@@ -6,9 +6,7 @@ library(plotly)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
 
-                   
-                   
-                     
+
   ####################          Home               #######################
   
   tabPanel(
@@ -84,7 +82,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
       actionButton("go", "Find"),
       br(),
-      em("Note: if no data appear after clicking Find, the accession is not one of the 20,405 human accessions in our database"  ),
+#      em("Note: if no data appear after clicking Find, the accession is not one of the 20,405 human accessions in our database"  ),
       br(),
       br(),
       h5(class="text-info", "Key:"),
@@ -93,23 +91,23 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
         "- Surfy = Bausch-Fluck et al., PNAS, 2018", br(),
         "- Town = Town et all, PNAS, 2016", br(),
         "- daCunha = da Cunha et al., PNAS, 2009", br(),
-        "- DiazRamoz = Diaz-Ramos et al., Immol Lett, 2011"),
-      p("SigPepPhobius - Signal Peptide predicted by Phobius"),
-      p("ScorePhobius - Phobius' Signal Peptide prediction score"),
-      p("SigPepSignalP - Signal Peptide predicted by SignalP"),
-      p("ScoreSignalP - SignalP's Signal Peptide prediction score"),
-      p("SigPepPredisi - Signal Peptide predicted by Predisi"),
-      p("ScorePredisi - Predisi's Signal Peptide prediction score"),
-      p("#TMPhobius - Phobius' number of transmembrane domains"),
-      p("#ICPhobius - Phobius' number of intracellular domains"),
-      p("#ECPhobius - Phobius' number of extracellular domains"),
-      p("#TMTMHMM - TMHMM's number of transmembrane domains"),
-      p("#ICTMHMM - TMHMM's number of intracellular domains"),
-      p("#ECTMHMM - TMHMM's number of extracellular domains"),
-      p("StringOutPhobius - raw output from Phobius"),
-      p("StringOutTMHMM - raw output from TMHMM"),
-      p("MissedCleavages - number of times trypsin missed a cleavage in the peptide"),
-      p("OKforMS - Length>5 and <2000m/z for 2 or 3 z")
+        "- DiazRamoz = Diaz-Ramos et al., Immol Lett, 2011")
+      # p("SigPepPhobius - Signal Peptide predicted by Phobius"),
+      # p("ScorePhobius - Phobius' Signal Peptide prediction score"),
+      # p("SigPepSignalP - Signal Peptide predicted by SignalP"),
+      # p("ScoreSignalP - SignalP's Signal Peptide prediction score"),
+      # p("SigPepPredisi - Signal Peptide predicted by Predisi"),
+      # p("ScorePredisi - Predisi's Signal Peptide prediction score"),
+      # p("#TMPhobius - Phobius' number of transmembrane domains"),
+      # p("#ICPhobius - Phobius' number of intracellular domains"),
+      # p("#ECPhobius - Phobius' number of extracellular domains"),
+      # p("#TMTMHMM - TMHMM's number of transmembrane domains"),
+      # p("#ICTMHMM - TMHMM's number of intracellular domains"),
+      # p("#ECTMHMM - TMHMM's number of extracellular domains"),
+      # p("StringOutPhobius - raw output from Phobius"),
+      # p("StringOutTMHMM - raw output from TMHMM"),
+      # p("MissedCleavages - number of times trypsin missed a cleavage in the peptide"),
+      # p("OKforMS - Length>5 and <2000m/z for 2 or 3 z")
     ),
     
     mainPanel(
@@ -144,8 +142,10 @@ fluidRow(      column( width=5, tableOutput('pepPhobius') ),
                   ),
 tabPanel(
   "Visualizations",
+  uiOutput('protvista'),
   div(id="pvDiv"),
   textOutput('txtVWarning'),
+  uiOutput('protter'),
   imageOutput("image1"),
   
   # This is the javascript to run protvista on the single protein lookup visualization page.  The
@@ -323,7 +323,13 @@ tabPanel(
         tags$li( "http://www.predisi.de/"),
         tags$li( "http://www.cbs.dtu.dk/services/SignalP/"),
         tags$li( "http://www.cbs.dtu.dk/services/TMHMM/" ),
-        tags$li( "http://www.cellsurfer.net/surfacegenie")
+        tags$li( "http://www.cellsurfer.net/surfacegenie"),
+        tags$li ("Protter: interactive protein feature visualization and integration with experimental proteomic data.
+        Omasits U, Ahrens CH, Müller S, Wollscheid B.
+        Bioinformatics. 2014 Mar 15;30(6):884-6."),
+        #doi: 10.1093/bioinformatics/btt607")
+        tags$li ("ProtVista: Visualization of Protein Sequence Annotations, Xavier Watkins, Leyla J Garcia, Sangya Pundir, Maria J Martin, UniProt Consortium. Bioinformatics. 2017 Jul 1;33(13):2040-2041.") 
+        #                 (doi: 10.1093/bioinformatics/btx120) )
       )
     ),
     br()
