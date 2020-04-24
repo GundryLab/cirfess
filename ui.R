@@ -6,9 +6,6 @@ library(plotly)
 
 shinyUI(navbarPage("", theme = "bootstrap.css",
 
-  # requirements for protvista.  js and css in www/, json files in www/data/
-  tags$head(tags$script(src="protvista.js")),
-  tags$head(tags$link(href="main.css", rel="stylesheet")),
                    
                    
                      
@@ -22,6 +19,11 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
     # a value called "data-value" that keeps the name of the tab.  So we use JavaScript in the 
     # browser to find all the a tags, look for which one has the data-value set to "contact" 
     # and grab the dynamically generated anchor and click it.
+
+    # requirements for protvista.  js and css in www/, json files in www/data/
+    tags$head(tags$script(src="protvista.js")),
+    tags$head(tags$link(href="main.css", rel="stylesheet")),
+    
     tags$head(tags$script(HTML('
       var fakeClick = function(tabName) {
         var dropdownList = document.getElementsByTagName("a");
@@ -78,7 +80,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
 
   tabPanel(
     "Single Protein Lookup",
-    sidebarPanel( width = 2,
+    sidebarPanel( width = 3,
       textInput("swissprtID", "Enter a Human UniProt Accession", placeholder = "P14384"),
       actionButton("go", "Find"),
       br(),

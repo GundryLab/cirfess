@@ -168,7 +168,7 @@ function(input, output, session) {
   caption.placement="top",
   include.colnames=FALSE,
   add.to.row = list(pos = list(0),
-                    command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
+                    command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missed Cleavages</th></tr>
 <tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
   ),striped=TRUE, bordered=TRUE)
   
