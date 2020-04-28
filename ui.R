@@ -122,7 +122,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h5(class="text-info", "Topology Predictions"),
       column(width=5,tableOutput('Topo')) ),
       h5(class="text-info", "Peptides Predicted to be Present in Extracellular MS Experiment"),
-      h6(class="text-info", "These Peptides have consensus motifs, proper M/Z Ratio, and predicted extracellular by one or more prediction methods"),
+      h6(class="text-info", "These Peptides have consensus motifs, m/z is ok for MS, and predicted extracellular by one or more prediction methods"),
       
 #      tableOutput('Phobius'),
 #      column( 6, tableOutput('TMHMM)') ),
@@ -152,12 +152,13 @@ tabPanel(
   # The full protvista js library is in a file in the www directory.  There is an associated css
   # file called main.css that goes with it.  
   tags$script("go.onclick = function() {
-              var uniID = swissprtID.value
+              var uniID = swissprtID.value;
+              var uuniID = uniID.toUpperCase();
               var pvDiv = document.getElementById('pvDiv');
               var ProtVista = require('ProtVista');
               var instance = new ProtVista({
                 el: pvDiv,
-                uniprotacc: uniID,
+                uniprotacc: uuniID,
                 defaultSources: false,
                 customDataSource: {
                   url: './data/',
@@ -340,7 +341,8 @@ tabPanel(
         #                 (doi: 10.1093/bioinformatics/btx120) )
       )
     ),
-    br()
+    br(),
+    div( tags$img(src="cover.png",  width="50%",align="center"))
   ),
 
   ##########    Contact   ##########

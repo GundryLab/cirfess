@@ -9,7 +9,7 @@ library(httr)
 #library(xlsx)
 
 
-unzip('all.zip')
+#unzip('all.zip')
 conn <- dbConnect(RSQLite::SQLite(), "matt.db")
 
 
@@ -182,7 +182,7 @@ function(input, output, session) {
   caption.placement="top",
   include.colnames=FALSE,
   add.to.row = list(pos = list(0),
-                    command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missing Cleavages</th></tr>
+                    command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missed Cleavages</th></tr>
 <tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
   ),striped=TRUE, bordered=TRUE)
   
@@ -479,7 +479,7 @@ generateProtter <- eventReactive(input$go, {
   OKforMS != 0 AND
   numMissedCleavages = 0;"
   
-  sql <- paste0(startSQL, input$swissprtID, endSQL)
+  sql <- paste0(startSQL, toupper(input$swissprtID), endSQL)
   
   n <- c()
   k <- c()
@@ -568,7 +568,7 @@ generateProtter <- eventReactive(input$go, {
   #   nck<-''
   # }
   sp <- '&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:signal%20peptide,fc:salmon,cc:white,bc:salmon=UP.SIGNAL'
-  s <- paste0("http://wlab.ethz.ch/protter/create?up=", input$swissprtID, "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
+  s <- paste0("http://wlab.ethz.ch/protter/create?up=", toupper(input$swissprtID), "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
   s <- paste0(s, zero, n, c, k, nc, nk, nck, m, sp, '&format=svg')
   im <-GET(s)
   return(im)
