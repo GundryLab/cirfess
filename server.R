@@ -9,8 +9,8 @@ library(httr)
 #library(xlsx)
 
 
-#unzip('all.zip')
-conn <- dbConnect(RSQLite::SQLite(), "matt.db")
+unzip('all.zip')
+conn <- dbConnect(RSQLite::SQLite(), "cirfess.db")
 
 
 function(input, output, session) {
@@ -512,7 +512,7 @@ generateProtter <- eventReactive(input$go, {
     }
   }
   
-  sql <- paste0("SELECT motifsLocPhobiusNXS, motifsLocPhobiusNXT, motifsLocPhobiusNXC, motifsLocPhobiusNXV, motifsLocPhobiusC, motifsLocPhobiusK From Prot where Accession ='", toupper(input$swissprtID), "';")
+  sql <- paste0("SELECT motifsLocPhobiusNXS, motifsLocPhobiusNXT, motifsLocPhobiusNXC, motifsLocPhobiusNXV, motifsLocPhobiusC, motifsLocPhobiusK FROM prot where Accession ='", toupper(input$swissprtID), "';")
   r <- dbGetQuery(conn, sql)
   locs <- c()
   for( motif in c('motifsLocPhobiusNXS', 'motifsLocPhobiusNXT', 'motifsLocPhobiusNXC', 'motifsLocPhobiusNXV', 'motifsLocPhobiusC', 'motifsLocPhobiusK') ){
@@ -520,8 +520,8 @@ generateProtter <- eventReactive(input$go, {
     loc<-loc[!loc=='n/a']
     locs <- union(locs, loc)
   } 
-  
-  sql <- paste0("SELECT Length From Prot where Accession ='", toupper(input$swissprtID), "';")
+
+  sql <- paste0("SELECT Length FROM prot where Accession ='", toupper(input$swissprtID), "';")
   len <- dbGetQuery(conn, sql)[[1]]
   
   zero <- paste0('&n:Not%20Captured%20or%20Not%20OK,bc:FFFFFF,fc:D0D0D0=1-', len)

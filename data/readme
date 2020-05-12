@@ -1,0 +1,35 @@
+TODO: Make it so that we don't have to chop the IDs down to just the accession for signalp, tmmhm, phobius
+
+How to update the data for CIRFESS:
+(I put all  the intermediate and final files in data/create_sources and then link to the finished files from data/sources.
+ data/sources is in github, data/create_sources is not)
+
+- get the human proteome from uniprot (click on swissprot, then human, then download the proteome or all sequences)
+
+- get the list of new accessions by subracting the old ones from the new ones
+  - first, from from sqlite3, get the list of old ones:  
+    - .output old_accsessions.txt (this sends the output of the sqlite3 session to a file called old_accessions.txt)
+    - select Accession from prot order by Accession; (this is the query to get the accessions)
+    - .exit (closes sqlite3 session)
+  - from commandline 
+    - grep -e '>' _uniprotfile_ | awk -F'|' '{print $2}' | sort > new_accessions.txt (this gets the list of accessions from the new proteome file)
+    - join -v 2 old_accessions.txt new_accessions.txt > new_diff.txt (this finds the list of accessions that are new)
+
+- get the fasta file from uniprot for the new accessions 
+  - click retrieve ID/Mapping
+  - upload new_diff.txt
+  - results pop up in a new form
+  - click download
+
+- upload the new fasta file to predisi, phobius, tmhmm, signalp
+  - for predisi output, choose html for the output format.  
+    - Append the records to the end of signalp.txt by Copy/Paste (can keep the header, but don't)  
+  - for phobius output, choose short for the output format
+    - Append the records to the end of Phobious.txt by Copy/Paste (not sure if I can keep the header, but don't anyway)
+  - for signalp output, choose prediction summary for the output format.
+    - need to chop up the ID line down to the accession
+      - perl -pi -e 's/sp_(.*?)_.*?\t/$1\t/g' _signalpfile_
+  - for tmhmm output, choose one line per protein for the output format
+    - need to chop up the ID line down to the accession
+      - perl -pi -e 's/sp\|(.*?)\|.*?\t/$1\t/g'
+
