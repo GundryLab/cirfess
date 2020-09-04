@@ -5,6 +5,7 @@ Everything needed to replicate the R Shiny app, CIRFESS, is found in this git re
 
 Directory Structure:
 
+```
 root - R scripts to run the site
   |
   | 
@@ -15,13 +16,13 @@ root - R scripts to run the site
   + - www - images, stylesheets, etc for the display of the website
        | 
        + - data - json files for the protvista style display of peptides
-
+```
 Instructions -
 
 - clone the git repo from github
 - run data/makeLiteSingle.py to create the sqlite3 db, cirfess.db 
   - This will take a while
-run data/createJSON.py to create the json files in www/data for the protvista display.
+- run data/createJSON.py to create the json files in www/data for the protvista display.
   - This will take a long while
   - If it errors out, just run again.  It will pick up from where it left off.
 
