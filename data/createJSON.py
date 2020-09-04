@@ -68,8 +68,10 @@ def weighPeptide(s):
     mass = 0
 
     for aa in s:
-        mass += mass_table[aa]
-
+        try:
+            mass += mass_table[aa]
+        except:
+            return(0)
     return(mass)
 
 def addPeptides(d):
@@ -217,7 +219,7 @@ for lacc in accs:
     if cnt % 250 == 0:
         print( str(cnt) )
     acc = lacc[0]
-    if path.exists('/home/jack/work/CirfessBranches/cirfess/www/data/' + acc + '.json'):
+    if path.exists('../www/data/' + acc + '.json'):
         continue
     else:
         p = createAccession(acc)
@@ -229,7 +231,7 @@ for lacc in accs:
     except urllib.error.HTTPError:
         print(acc)
         continue
-    f = open('/home/jack/work/CirfessBranches/cirfess/www/data/' + acc + '.json', 'w')
+    f = open('../www/data/' + acc + '.json', 'w')
     f.write(json.dumps(p))
     f.close()
 

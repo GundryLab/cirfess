@@ -741,13 +741,13 @@ path = 'sources/'
 seqs_dict = fasta_parser(path + file_name)
 print('sequnces:',len(seqs_dict))
 
-sp = parse_signalP(path + 'signalp.tsv')
+sp = parse_signalP(path + 'signalp.txt')
 print('SignalP:',len(sp))
 
-TMHMM_dict  = parse_TMHMM(path + 'TMHMM.tsv')
+TMHMM_dict  = parse_TMHMM(path + 'tmhmm.txt')
 print('TMHMM:',len(TMHMM_dict))
 
-Phobius_dict = parse_Phobius(path + 'Phobius.tsv')
+Phobius_dict = parse_Phobius(path + 'phobius.txt')
 print('Phobius:',len(Phobius_dict))
 
 SPC_dict = parse_SPC(seqs_dict, path + 'SPC_by_Source.csv')

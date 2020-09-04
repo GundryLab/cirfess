@@ -1,0 +1,25 @@
+Cirfess uses data from phobius, predisi, signalp, and tmhmm.  Each data service requires a fasta file.  None of them will take a file as large as the whole human or rat proteome.  Therefore, each proteome in fasta format has to be broken up.  Use split_fasta.py found in the data directory. Usage: split_fasta.py -s 1001 -e 2001 -f infile.fasta to print the 2nd set of 1000 sequences.  Feed the data into the services thusly:
+
+- for predisi output, choose html for the output format. 
+  - Copy/Paste the results into one predisi.txt. Remove any header lines.
+- for phobius output, choose short for the output format
+  - Copy/Paste the results into one phobius.txt. Remove any header lines.
+- for signalp output, choose prediction summary for the output format.  You will need to download the results.  
+  - Concatenate all results into one signalp.txt file.  Remove any header lines
+- for tmhmm output, choose one line per protein for the output format
+  - Copy/Paste the results into one tmhmm.txt. Remove any header lines.
+
+
+Run data/makeLiteSingle.py to create the sqlite3 db, cirfess.db 
+  - This will take a while
+Run data/createJSON.py to create the json files in www/data for the protvista display.
+  - This will take a long while
+  - If it errors out, just run again.  It will pick up from where it left off.
+
+
+For the record, each data service outputs a slightly different format.  To create/update the app, this isn't important, but if one ever needs to muck around...
+phobius		fields delimited by spaces, ID delimited by |
+predisi		fields delimited by tabs, ID delimited by |
+signalp		fields delimited by tabs, ID delimited by _
+tmhmm		fields delimited by tabs, ID delimited by |
+

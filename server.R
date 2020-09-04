@@ -9,7 +9,7 @@ library(httr)
 #library(xlsx)
 
 
-unzip('all.zip')
+#unzip('all.zip')
 conn <- dbConnect(RSQLite::SQLite(), "cirfess.db")
 
 
