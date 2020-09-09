@@ -626,7 +626,7 @@ output$txtVWarning <- renderText({
       sql <- paste0( sql, ', SPC, SPCstring') 
     }
     if( 'Signal' %in% protOptions ) {
-      sql <- paste0( sql, ', SigPepPhobius, ScorePhobius, SigPepSignalP, ScoreSignalP, SigPepPrediSI, ScorePrediSI, numSPpedictions') 
+      sql <- paste0( sql, ', SigPepPhobius, ScorePhobius, SigPepSignalP, ScoreSignalP, SigPepPrediSI, ScorePrediSI, numSPpredictions') 
     }
     if( 'Topo' %in% protOptions ) {
       sql <- paste0( sql, ', numTMPhobius, numICPhobius, numECPhobius, numTMTMHMM, numICTMHMM, numECTMHMM, StringOutPhobius, StringOutTMHMM') 

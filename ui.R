@@ -53,7 +53,7 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
 #    p(tags$u("C"), "ompiled ", tags$u("I"), "nteractive ", tags$u("R"), "esource ", tags$u("f"), "or ", tags$u("E"), "xtracellular and ", tags$u("S"), "urface ", tags$u("S"), "tudies (CIRFESS) integrates multiple 
      p("Compiled Interactive Resource for Extracellular and Surface Studies (CIRFESS) integrates multiple 
         prediction strategies and annotations into a single 
-        interface for interrogating the human proteome. 
+        interface for interrogating the human, mouse, and rat proteomes. 
         Results from CIRFESS reveal the cell surface 
         proteome theoretically detectable by current 
         approaches and highlights where current prediction 
@@ -342,7 +342,7 @@ tabPanel(
       )
     ),
     br(),
-    div( tags$img(src="cover.png",  width="50%",align="center"))
+    div( tags$img(src="CIRFESS_COVER.jpg",  width="50%",align="center"))
   ),
 
   ##########    Contact   ##########
