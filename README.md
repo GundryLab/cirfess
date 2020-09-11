@@ -20,7 +20,7 @@ root - R scripts to run the site
 Instructions -
 
 - clone the git repo from github
-- run data/makeLiteSingle.py to create the sqlite3 db, cirfess.db 
+- run data/createLiteSingle.py to create the sqlite3 db, cirfess.db 
   - This will take a while
 - run data/createJSON.py to create the json files in www/data for the protvista display.
   - This will take a long while

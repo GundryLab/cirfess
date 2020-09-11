@@ -1,21 +1,36 @@
-Cirfess uses data from phobius, predisi, signalp, and tmhmm.  Each data service requires a fasta file.  None of them will take a file as large as the whole human or rat proteome.  Therefore, each proteome in fasta format has to be broken up.  Use split_fasta.py found in the data directory. Usage: split_fasta.py -s 1001 -e 2001 -f infile.fasta to print the 2nd set of 1000 sequences.  Feed the data into the services thusly:
+Cirfess uses data from phobius, predisi, signalp, and tmhmm.  A set of data from each of these data sources is available in the sources directory for rat, mouse, and human combined.  It may or may not be recent data.  You may wish to update it or start fresh or just go with what is there.  
 
-- for predisi output, choose html for the output format. 
+===============================================================================
+If you wish to start fresh, download the latest proteome from uniprot for your species of interest.  You'll need to break up the fasta file because phobius, etc cannot handle input files that large.  split_fasta.pl can split the fasta files up for you.  Getting the input files broken up, inputted, run, and put back together for each service can take a while.  Feed the data into the services thusly:
+
+- for predisi output, choose html for the output format.
   - Copy/Paste the results into one predisi.txt. Remove any header lines.
 - for phobius output, choose short for the output format
   - Copy/Paste the results into one phobius.txt. Remove any header lines.
-- for signalp output, choose prediction summary for the output format.  You will need to download the results.  
+- for signalp output, choose prediction summary for the output format.  You will need to download the results.
   - Concatenate all results into one signalp.txt file.  Remove any header lines
 - for tmhmm output, choose one line per protein for the output format
   - Copy/Paste the results into one tmhmm.txt. Remove any header lines.
 
+Once the files are created, make the database and protvista files by:
 
-Run data/makeLiteSingle.py to create the sqlite3 db, cirfess.db 
+Run makeLiteSingle.py to create the sqlite3 db, cirfess.db
   - This will take a while
-Run data/createJSON.py to create the json files in www/data for the protvista display.
+Run createJSON.py to create the json files in www/data for the protvista display.
   - This will take a long while
   - If it errors out, just run again.  It will pick up from where it left off.
+===============================================================================
 
+
+===============================================================================
+Alternatively, you can update the files alread in the sources directory.  Those files are human, rat, and mouse combined.  Download the latest proteomes for human, rat and mouse.  Combine them.  Run update_fasta.pl.  This will add new sequences to the fasta file and make changes to the ones that have been updated.  It will also output a fasta file of just the new / updated sequences so you don't have to run a large number of sequences through  phobius, etc.  You can just put the new fasta file through those sites and then run update_phobius.py, update_predisi.py, update_signalp.py and update_tmhmm.py.  You can run those programs with the -h option to get help on how to run them.
+
+Once the files are updated:
+
+Run updateLiteSingle.py to create the sqlite3 db, cirfess.db 
+
+Run createJSON.py to create the json files in www/data for the protvista display.
+===============================================================================
 
 For the record, each data service outputs a slightly different format.  To create/update the app, this isn't important, but if one ever needs to muck around...
 phobius		fields delimited by spaces, ID delimited by |
