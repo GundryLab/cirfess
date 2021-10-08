@@ -29,7 +29,7 @@ Once the files are updated:
 
 Run updateLiteSingle.py to create the sqlite3 db, cirfess.db 
 
-Run createJSON.py to create the json files in www/data for the protvista display.
+Run updateJSON.py to create the json files in www/data for the protvista display.
 ===============================================================================
 
 For the record, each data service outputs a slightly different format.  To create/update the app, this isn't important, but if one ever needs to muck around...
