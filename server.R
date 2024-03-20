@@ -9,7 +9,7 @@ library(httr)
 #library(xlsx)
 
 
-#unzip('all.zip')
+unzip('all.zip')
 conn <- dbConnect(RSQLite::SQLite(), "cirfess.db")
 
 
@@ -480,7 +480,7 @@ generateProtter <- eventReactive(input$go, {
   numMissedCleavages = 0;"
   
   sql <- paste0(startSQL, toupper(input$swissprtID), endSQL)
-  
+
   n <- c()
   k <- c()
   c <- c()
@@ -491,7 +491,6 @@ generateProtter <- eventReactive(input$go, {
   zero <- c()
   
   df<-dbGetQuery(conn, sql)
-  
   for (i in 1:nrow(df)) {
     if( df[i,]$N==1 & df[i,]$K==0 & df[i,]$C == 0 ) {
       n <- c( n, df[i,]$range )
@@ -570,7 +569,7 @@ generateProtter <- eventReactive(input$go, {
   sp <- '&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:signal%20peptide,fc:salmon,cc:white,bc:salmon=UP.SIGNAL'
   s <- paste0("http://wlab.ethz.ch/protter/create?up=", toupper(input$swissprtID), "&tm=auto&mc=lightgoldenrodyellow&lc=blue&tml=none&numbers&cutAt=peptidecutter.Tryps&legend")
   s <- paste0(s, zero, n, c, k, nc, nk, nck, m, sp, '&format=svg')
-  im <-GET(s)
+  im <-GET(s, timeout(30))
   return(im)
 })
 
@@ -734,7 +733,6 @@ output$txtVWarning <- renderText({
   })
   
   
-  
 #Prot level Option 1
   # Downloadable csv of selected dataset ----
   output$Batch_Text_prot_download_csv <- downloadHandler(
@@ -771,7 +769,7 @@ output$txtVWarning <- renderText({
   # Downloadable csv of selected dataset ----
   output$Batch_Text_pep_download_csv <- downloadHandler(
     filename = function() {
-      paste0("ProteinLevelData-", Sys.Date(), ".csv")
+      paste0("PeptideLevelData-", Sys.Date(), ".csv")
     },
     content = function(filename) {
       write.csv(Batch_Text_pep_output(), filename, row.names = FALSE)
@@ -796,10 +794,8 @@ output$txtVWarning <- renderText({
     downloadButton("Batch_Text_pep_download_tsv", ".tsv", class="download_this")
   })
   
-
   
-  
-#Prot level Option 1
+#Prot level Option 2
   # Downloadable csv of selected dataset ----
   output$Batch_File_prot_download_csv <- downloadHandler(
     filename = function() {
@@ -810,7 +806,7 @@ output$txtVWarning <- renderText({
     }
   )
   output$Batch_File_prot_dlbutton_csv <- renderUI({
-    req(input$quicklookup)
+    req(input$file2)
     downloadButton("Batch_File_prot_download_csv", ".csv", class="download_this")
   })
   
@@ -825,24 +821,24 @@ output$txtVWarning <- renderText({
     }
   )
   output$Batch_File_prot_dlbutton_tsv <- renderUI({
-    req(input$quicklookup)
+    req(input$file2)
     downloadButton("Batch_File_prot_download_tsv", ".tsv", class="download_this")
   })
   
   
   
-  #Pep level Option 1
+  #Pep level Option 2
   # Downloadable csv of selected dataset ----
   output$Batch_File_pep_download_csv <- downloadHandler(
     filename = function() {
-      paste0("ProteinLevelData-", Sys.Date(), ".csv")
+      paste0("PeptideLevelData-", Sys.Date(), ".csv")
     },
     content = function(filename) {
       write.csv(Batch_File_pep_output(), filename, row.names = FALSE)
     }
   )
   output$Batch_File_pep_dlbutton_csv <- renderUI({
-    req(input$quicklookup)
+    req(input$file2)
     downloadButton("Batch_File_pep_download_csv", ".csv", class="download_this")
   })
   
@@ -856,7 +852,7 @@ output$txtVWarning <- renderText({
     }
   )
   output$Batch_File_pep_dlbutton_tsv <- renderUI({
-    req(input$quicklookup)
+    req(input$file2)
     downloadButton("Batch_File_pep_download_tsv", ".tsv", class="download_this")
   })
   
