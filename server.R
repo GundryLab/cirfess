@@ -1,132 +1,140 @@
-# SurfaceGenie_0.1/server.R
-library(RSQLite)
+#library(RSQLite)
+library(RMariaDB)
+library(pool)
 library(shiny)
 library(dplyr)
 library(DT)
 library(plotly)
 library(xtable)
 library(httr)
+library(tidyr) #for pivot_longer
 #library(xlsx)
 
+if( file.exists("www/data/P14384.json") ) {
+  print("already unzipped")
+} else {
+  print("unzipping")
+  unzip('all.zip')
+}
 
-unzip('all.zip')
-conn <- dbConnect(RSQLite::SQLite(), "cirfess.db")
+#conn <- dbConnect(RSQLite::SQLite(), "cirfess.db")
 
+
+conn <- dbPool(
+  drv = RMariaDB::MariaDB(),
+  default.file="./ssl/my.cnf",
+  group="cirfess",
+  dbname='cirfess'
+)
 
 function(input, output, session) {
 
 ##################################################  
 ###########    Single Protein Lookup   ###########
 ##################################################  
-  
-#### This function gets called by all render* functions to see if the accession exists ####
-    exists <- function(acc){
-    sql <- paste0("SELECT count(*) AS cnt FROM prot WHERE Accession = '", acc, "';")
-    r <- dbGetQuery(conn, sql)
-    if(r$cnt[1]==0) {
-      return(NULL)
-    } else {
-    return(r$cnt[1])
-    }
-  }
 
+  protData <- eventReactive( input$go, {
+    sqlstmnt <- paste0("SELECT * FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
+    result <- dbGetQuery(conn, sqlstmnt) 
+    return( result )
+  })
+  
+  pepData <- eventReactive( input$go, {
+    sqlstmnt <- paste0("SELECT * FROM pep WHERE OKforMS != 0 AND Accession = '", toupper(input$swissprtID), "';")
+    result <- dbGetQuery(conn, sqlstmnt)
+    return( result )
+  })
+
+  
 ######################    Protein Level Stuff   ######################
     
       
   ##### SPC Table ##### 
   
-  SPCtable <- eventReactive( input$go, { 
-    req(exists(toupper(input$swissprtID)))
-    sql <- paste0("SELECT Accession, SPC, SPCstring AS SPC_DB FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
-    dbGetQuery(conn, sql)
-  })
-  
   output$SPC <- renderTable({
-    spc<-SPCtable()
+    req(length(protData()[,1])>0)
+    spc <- protData()[c("Accession", "SPC", "SPCstring")]
+    names(spc)[names(spc) == 'SPCstring'] <- 'SPC_DB'
     spc$SPC_DB<-translateSPC(spc$SPC_DB)
     return(spc)
   }, striped = TRUE, hover=TRUE, bordered = TRUE)
   
   ##### Signal Peptide Predictions ##### 
   
-  SigPeptable <- eventReactive( input$go, { 
-    req(exists(toupper(input$swissprtID)))
-    sql <- paste0("SELECT SigPepPhobius, ScorePhobius, SigPepSignalP, ScoreSignalP, SigPepPrediSI, ScorePrediSI FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
-    r <- dbGetQuery(conn, sql)
+  output$SigPep <- renderTable({
+    req(length(protData()[,1])>0)
+    r<-protData()
     Method<-c('Phobius', 'SignalP', 'PrediSI')
     Prediction<-c(r$SigPepPhobius, r$SigPepSignalP, r$SigPepPrediSI)
     Score<-c(r$ScorePhobius, r$ScoreSignalP, r$ScorePrediSI)
     df<-data.frame(Method, Prediction, Score)
-  })
-  
-  output$SigPep <- renderTable({
-    SigPeptable()
   }, striped = TRUE, hover=TRUE, bordered = TRUE)
   
   ##### Topology Table ##### 
   
-  Topotable <- eventReactive( input$go, {
-    req(exists(toupper(input$swissprtID)))
-    select <- 'SELECT numTMPhobius, numICPhobius, numECPhobius, numTMTMHMM, numICTMHMM, numECTMHMM, StringOutPhobius, StringOutTMHMM'
-    sql <- paste0(select, " FROM prot WHERE Accession = '", toupper(input$swissprtID), "';")
-    r <- dbGetQuery(conn, sql)
+  output$Topo <- renderTable({
+    req(length(protData()[,1])>0)
+    r<-protData()
     Measure <- c('EC Residues', 'TM Residues', 'IC Residues', 'Short Format')
     Phobius <- c(r$numECPhobius, r$numTMPhobius, r$numICPhobius, r$StringOutPhobius)
     TMHMM <- c(r$numECTMHMM, r$numTMTMHMM, r$numICTMHMM, r$ StringOutTMHMM)
     df <- data.frame(Phobius, TMHMM)
     rownames(df) <- Measure
     return(df)
-  })
-  
-  output$Topo <- renderTable({
-    Topotable()
   }, rownames = TRUE, striped = TRUE, hover=TRUE, bordered = TRUE)
+
+    
+  ##### Phobius Table ##### 
+  
+  output$pepPhobius <-renderTable({
+    req(length(protData()[,1])>0)
+    filtered <- filter(pepData(), OKforMS != 0 )
+    phobius <- filtered[c("numMissedCleavages", "numMotifsPhobiusNXS", "numMotifsPhobiusNXT", "numMotifsPhobiusNXC", "numMotifsPhobiusNXV", "numMotifsPhobiusC", "numMotifsPhobiusK")]
+    longer <- phobius %>% pivot_longer(cols = !numMissedCleavages, names_to = "motif", values_to = "count")
+    longer$count[longer$count>0]<-1  #because xtabs sums when it makes crosstabs and I want a count
+    xt <- xtabs(count~motif+numMissedCleavages, longer)
+    rownames(xt)<-c("C", "K", "NXC", "NXS", "NXT", "NXV")
+    xtable(xt)
+  },
+  include.rownames=TRUE, #Don't print rownames
+  caption.placement="top",
+  include.colnames=FALSE,
+  add.to.row = list(pos = list(0),
+  command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missed Cleavages</th></tr> <tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
+  ),striped=TRUE, bordered=TRUE, digits=0)
   
   
-######################    Peptide Level Stuff   ######################
+  ##### TMHMM Table ##### 
+
+  output$pepTMHMM <-renderTable({
+    req(length(protData()[,1])>0)
+    filtered <- filter(pepData(), OKforMS != 0 )
+    tmhmm <- filtered[c("numMissedCleavages", "numMotifsTMHMMNXS", "numMotifsTMHMMNXT", "numMotifsTMHMMNXC", "numMotifsTMHMMNXV", "numMotifsTMHMMC", "numMotifsTMHMMK")]
+    longer <- tmhmm %>% pivot_longer(cols = !numMissedCleavages, names_to = "motif", values_to = "count")
+    longer$count[longer$count>0]<-1  #because xtabs sums when it makes crosstabs and I want a count
+    xt <- xtabs(count~motif+numMissedCleavages, longer)
+    rownames(xt)<-c("C", "K", "NXC", "NXS", "NXT", "NXV")
+    xtable(xt)
+  },
+    #size="footnotesize", #Change size; useful for bigger tables
+    include.rownames=TRUE, #Don't print rownames
+    caption.placement="top",
+    include.colnames=FALSE,
+    add.to.row = list(pos = list(0),
+      command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missed Cleavages</th></tr><tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
+  ),striped=TRUE, bordered=TRUE, digits=0)
   
-  getPepCount <- function(l, a, c, t) {
-    o <- c()
-    for (m in l) {
-      sql<-paste0("SELECT count(*) FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = ", c, " AND numMotifs", t, m, " > 0;")
-      r <- dbGetQuery(conn, sql)[[1]]
-      o <- c(o,r)
-    }
-    return(o)
-  }
-  
-  pepTablePhobius <- eventReactive(input$go,{
-    req(exists(toupper(input$swissprtID)))
-    motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
-    mc0 <- getPepCount(motif, toupper(input$swissprtID), 0, 'Phobius')
-    mc1 <- getPepCount(motif, toupper(input$swissprtID), 1, 'Phobius')
-    mc2 <- getPepCount(motif, toupper(input$swissprtID), 2, 'Phobius')
-    df <- data.frame(motif, mc0, mc1, mc2)
-    #  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
-    colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
-    return(df)
-  })
-  
-  pepTableTMHMM <- eventReactive(input$go,{
-    req(exists(toupper(input$swissprtID)))
-    motif <- c('NXS', 'NXT', 'NXC', 'NXV', 'C', 'K')
-    mc0 <- getPepCount(motif, toupper(input$swissprtID), 0, 'TMHMM')
-    mc1 <- getPepCount(motif, toupper(input$swissprtID), 1, 'TMHMM')
-    mc2 <- getPepCount(motif, toupper(input$swissprtID), 2, 'TMHMM')
-    df <- data.frame(motif, mc0, mc1, mc2)
-    #  colnames(df)<-c('Motif', '0 Missed Cleavages', '1 Missed Cleavage', '2 Missed Cleavages')
-    colnames(df)<-c('Motif', '0 MC', '1 MC', '2 MC')
-    return(df)
-  })
-  
+
+  ##### Motifs Plot ##### 
+
   getPepList <- function(a, motif, method) {
-    sql<-paste0("SELECT ID FROM pep WHERE Accession = '", a, "' AND OKforMS != 0 AND numMissedCleavages = 0 AND numMotifs", method, motif, " > 0;")
-    r <- dbGetQuery(conn, sql)[[1]]
-    return(r)
+    column_name <- paste0( "numMotifs", method, motif )
+    r <- filter(pepData(), numMissedCleavages == 0 & OKforMS != 0 & !!as.name(column_name) > 0 ) 
+    return(r[[1]])
   }
-  
-  
-  pepPlot <- eventReactive(input$go,{
+
+  output$pepPlot <-renderPlotly({
+    req(length(protData()[,1])>0)
     acc = toupper(input$swissprtID)
     motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
     M<-matrix(ncol=4)
@@ -155,251 +163,13 @@ function(input, output, session) {
     return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
   }  
   
-  output$pepPlot <-renderPlotly({
-    req( exists(toupper(input$swissprtID) ) )
-    pepPlot()
+  output$txtWarning <- renderText({
+    if( length(protData()[,1]) == 0 ){
+      paste0("The accession, ", toupper(input$swissprtID), ", is not in our database")
+    }
   })
   
-  output$pepPhobius <-renderTable({
-    xtable(pepTablePhobius())
-  },
-  #size="footnotesize", #Change size; useful for bigger tables
-  include.rownames=FALSE, #Don't print rownames
-  caption.placement="top",
-  include.colnames=FALSE,
-  add.to.row = list(pos = list(0),
-                    command = "<tr><th colspan=1><B>Phobius<B></th><th colspan='3'>Number of Missed Cleavages</th></tr>
-<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
-  ),striped=TRUE, bordered=TRUE)
-  
-  
-  
-  output$pepTMHMM <-renderTable({
-    xtable(pepTableTMHMM())
-  },
-  #size="footnotesize", #Change size; useful for bigger tables
-  include.rownames=FALSE, #Don't print rownames
-  caption.placement="top",
-  include.colnames=FALSE,
-  add.to.row = list(pos = list(0),
-                    command = "<tr><th colspan=1><B>TMHMM<B></th><th colspan='3'>Number of Missed Cleavages</th></tr>
-<tr> <th> Motif </th> <th> 0 MC</th> <th> 1 MC</th> <th> 2 MC</th> </tr>"
-  ),striped=TRUE, bordered=TRUE)
-  
-warningMsg <- eventReactive(input$go,{  
-  if( is.null( exists(toupper(input$swissprtID)) ) ){
-    paste0("The accession, ", toupper(input$swissprtID), ", is not in our database")
-  }
-})
 
-output$txtWarning <- renderText({
-  warningMsg()
-})
-
-###################################################################################################
-
-# phobiusTable <- eventReactive(input$go, {
-#   sql <- paste0("SELECT * FROM pep WHERE Accession = '", input$swissprtID, "';")
-#   peps <- dbGetQuery(conn, sql)
-#   df = data.frame(summarise(group_by(peps, numMissedCleavages), NXS=sum(numMotifsPhobiusNXS), NXT=sum(numMotifsPhobiusNXT), NXC=sum(numMotifsPhobiusNXC), NXV=sum(numMotifsPhobiusNXV), C=sum(numMotifsPhobiusC), K=sum(numMotifsPhobiusK)))
-#   df<-t(df)
-#   colnames(df)<-df[1,]
-#   colnames(df)<-paste0(colnames(df), ' MC')
-#   df<-df[2:7,]
-#   print(df)
-#   return(df)
-# })
-#   
-# output$Phobius <- renderTable({
-#   phobiusTable()}, rownames=TRUE, striped = TRUE, hover = TRUE, bordered = TRUE, align='c'
-# )
-# 
-# tmhmmTable <- eventReactive(input$go, {
-#   sql <- paste0("SELECT * FROM pep WHERE Accession = '", input$swissprtID, "';")
-#   peps <- dbGetQuery(conn, sql)
-#   df = data.frame(summarise(group_by(peps, numMissedCleavages), NXS=sum(numMotifsPhobiusNXS), NXT=sum(numMotifsPhobiusNXT), NXC=sum(numMotifsPhobiusNXC), NXV=sum(numMotifsPhobiusNXV), C=sum(numMotifsPhobiusC), K=sum(numMotifsPhobiusK)))
-#   df<-t(df)
-#   colnames(df)<-df[1,]
-#   colnames(df)<-paste0(colnames(df), ' MC')
-#   df<-df[2:7,]
-#   print(df)
-#   return(df)
-# })
-# 
-# output$Phobius <- renderTable({
-#   phobiusTable()}, rownames=TRUE, striped = TRUE, hover = TRUE, bordered = TRUE, align='c'
-# )
-
-
-
-  # tabulate <- function(All,Phob,Tmhmm) {
-  #   
-  #   all<-strsplit(as.character(All), ',')[[1]]
-  #   phob<-strsplit(as.character(Phob), ',')[[1]]
-  #   tmhmm<-strsplit(as.character(Tmhmm), ',')[[1]]
-  #   all<-all[!all=='n/a']
-  #   phob<-phob[!phob=='n/a']
-  #   tmhmm<-tmhmm[!tmhmm=='n/a']
-  #   
-  #   ec <- union(phob, tmhmm)
-  #   both <- intersect(phob, tmhmm)
-  #   fphob <- setdiff(phob, tmhmm)
-  #   ftmhmm <- setdiff(tmhmm, phob)
-  #   nonec <- setdiff(all, ec)
-  #   return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
-  # }
-  # 
-  # MotifPlot <- eventReactive(input$go,{
-  #   sql <- paste0("SELECT motifsLocNXS, motifsLocPhobiusNXS, motifsLocTMHMMNXS, motifsLocNXT, motifsLocPhobiusNXT, motifsLocTMHMMNXT, motifsLocNXC, motifsLocPhobiusNXC, motifsLocTMHMMNXC,  motifsLocNXV, motifsLocPhobiusNXV, motifsLocTMHMMNXV, motifsLocC, motifsLocPhobiusC, motifsLocTMHMMC, motifsLocK, motifsLocPhobiusK, motifsLocTMHMMK FROM prot WHERE Accession = '" , toupper(input$swissprtID), "';")
-  #   result <- dbGetQuery(conn,sql)
-  #   M <- matrix(tabulate(result['motifsLocNXS'], result['motifsLocPhobiusNXS'], result['motifsLocTMHMMNXS']), ncol=4)
-  #   M <- rbind(M, tabulate(result['motifsLocNXT'], result['motifsLocPhobiusNXT'], result['motifsLocTMHMMNXT']))
-  #   M <- rbind(M, tabulate(result['motifsLocNXC'], result['motifsLocPhobiusNXC'], result['motifsLocTMHMMNXC']))
-  #   M <- rbind(M, tabulate(result['motifsLocNXV'], result['motifsLocPhobiusNXV'], result['motifsLocTMHMMNXV']))
-  #   M <- rbind(M, tabulate(result['motifsLocC'], result['motifsLocPhobiusC'], result['motifsLocTMHMMC']))
-  #   M <- rbind(M, tabulate(result['motifsLocK'], result['motifsLocPhobiusK'], result['motifsLocTMHMMK']))
-  #   motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
-  #   both <- M[,1]
-  #   phobius <- M[,2]
-  #   tmhmm <- M[,3]
-  #   neither <- M[,4]
-  #   data <- data.frame(motifs, both, phobius, tmhmm, neither)
-  #   fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC')
-  #   fig <- fig %>% add_trace(y = ~tmhmm, name = 'Predicted EC only by TMHMM')
-  #   fig <- fig %>% add_trace(y = ~phobius, name = 'Predicted EC only by Phobius')
-  #   fig <- fig %>% add_trace(y = ~both, name = 'Predicted EC by both Phobius and TMHMM')
-  #   fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
-  # })
-  # 
-  # 
-  # output$Motifs <-renderPlotly(
-  #  MotifPlot() 
-  # )
-  # 
-  # OKPlot <- eventReactive(input$go, {
-  #   sql <- paste0( "select numPepMC0 - numPepOKMC0 as NotOK0, numPepOKMC0, numPepMC1 - numPepOKMC1 as NotOK1, numPepOKMC1, numPepMC2 - numPepOKMC2 AS NotOK2, numPepOKMC2 FROM prot WHERE Accession = '", toupper(input$swissprtID), "';" )
-  #   result <- dbGetQuery(conn,sql)
-  # 
-  #   M <- matrix(result, ncol=2, byrow = TRUE)
-  #   d <- data.frame(M)
-  #   colnames(d)<-c('notOK', 'OK')
-  #   d$'MC' <-c('0', '<=1', '<=2')
-  #   fig <- plot_ly(d, x = ~MC, y = ~notOK, type = 'bar', name = 'not OK')
-  #   fig <- fig %>% add_trace(y = ~OK, name = 'OK for MS')
-  #   fig <- fig %>% layout(yaxis = list(title = 'Number of Peptides'), barmode = 'stack')
-  # })
-  # 
-  # output$OK <-renderPlotly(
-  #   OKPlot() 
-  # )
-  
-  peptabulate <- function(all,phob,tmhmm) {
-    ec <- union(phob, tmhmm)
-    both <- intersect(phob, tmhmm)
-    fphob <- setdiff(phob, tmhmm)
-    ftmhmm <- setdiff(tmhmm, phob)
-    nonec <- setdiff(all, ec)
-    return(c(length(both), length(fphob), length(ftmhmm), length(nonec)))
-  }  
-  
-  
-  # in the long list of gaffes that prove I am not an R programmer, I believe none is greater than the following:
-  # pepPrep <- eventReactive(input$go, {
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXS > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXS > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXS > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- matrix(peptabulate(all,phob,tmhmm), ncol=4)
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXT > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXT > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXT > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- rbind(M, peptabulate(all, phob, tmhmm))
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXC > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXC > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXC > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- rbind(M, peptabulate(all, phob, tmhmm))
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsNXV > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusNXV > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMNXV > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- rbind(M, peptabulate(all, phob, tmhmm))
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsC > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusC > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMC > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- rbind(M, peptabulate(all, phob, tmhmm))
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsK > 0 and OKforMS > 0;")
-  #   all <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsPhobiusK > 0 and OKforMS > 0;")
-  #   phob <- dbGetQuery(conn,sql)[[1]]
-  #   sql <- paste0("select ID from pep where Accession = '" , toupper(input$swissprtID), "' and numMissedCleavages = 0 and numMotifsTMHMMK > 0 and OKforMS > 0;")
-  #   tmhmm <- dbGetQuery(conn,sql)[[1]]
-  #   M <- rbind(M, peptabulate(all, phob, tmhmm))
-  #   motifs <- c("NXS", "NXT", "NXC", "NXV", "C", "K")
-  #   both <- M[,1]
-  #   phobius <- M[,2]
-  #   tmhmm <- M[,3]
-  #   neither <- M[,4]
-  #   data <- data.frame(motifs, both, phobius, tmhmm, neither)
-  #   print(data)
-  #   # fig <- plot_ly(data, x = ~motifs, y = ~neither, type = 'bar', name = 'Not Predicted EC')
-  #   # fig <- fig %>% add_trace(y = ~tmhmm, name = 'Predicted EC only by TMHMM')
-  #   # fig <- fig %>% add_trace(y = ~phobius, name = 'Predicted EC only by Phobius')
-  #   # fig <- fig %>% add_trace(y = ~both, name = 'Predicted EC by both Phobius and TMHMM')
-  #   # fig <- fig %>% layout(yaxis = list(title = 'Number of Motifs'), barmode = 'stack')
-  # })
-
-
-  ##################################################################  
-  ##################################################################  
-  # output$pepPlot <-renderPlotly(
-  #   pepPlot() 
-  # )
-  # output$pepTable <-renderTable(
-  #   pepPrep(), striped = TRUE, hover = TRUE, bordered = TRUE 
-  # )
-  ##################################################################  
-  ##################################################################  
-  
-  # ##### Motif Summary Table ##### 
-  # 
-  # MotifSummarytable <- reactive({ 
-  #   sql <- paste0("SELECT * FROM pep WHERE Accession = '",input$swissprtID, "';")
-  #   peps <- dbGetQuery(conn, sql)
-  #   data.frame(summarise(group_by(peps, numMissedCleavages), NXS=sum(numMotifsPhobiusNXS), NXT=sum(numMotifsPhobiusNXT), NXC=sum(numMotifsPhobiusNXC), NXV=sum(numMotifsPhobiusNXV), C=sum(numMotifsPhobiusC), K=sum(numMotifsPhobiusK)))
-  # })
-  # 
-  # output$MotifSummary <- renderTable({
-  #   MotifSummarytable()
-  # })
-  
-  ##### Peptide Summary Table ##### 
-  
-#   PepSummarytable <- reactive({
-#     select <- 'SELECT numMissedCleavages AS MissedCleavages, OKforMS, numMotifsNXS, numMotifsNXT, numMotifsNXC, numMotifsNXV, numMotifsC, numMotifsK'
-# #    sql <- paste0("SELECT * FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
-#     sql <- paste0(select, " FROM pep WHERE Accession = '", toupper(input$swissprtID), "';")
-#     peps <- dbGetQuery(conn, sql)
-#     data.frame(summarise(group_by(peps, MissedCleavages, OKforMS), NXS=sum(numMotifsNXS), NXT=sum(numMotifsNXT), NXC=sum(numMotifsNXC), NXV=sum(numMotifsNXV), C=sum(numMotifsC), K=sum(numMotifsK)))
-# #    colnames(d) <- c("#MissedCleavages", "OKforMS", "NXS", "NXT", "NXC", "NXV", "C", "K")
-#   })
-#   
-#   output$PepSummary <- renderDataTable({
-#     PepSummarytable()
-#   })
-  
   translateSPC <- function(s) {
     s<-gsub("BF","Surfy",s)
     s<-gsub("T","Town",s)
@@ -428,58 +198,26 @@ output$txtWarning <- renderText({
 ##################################################  
 ###########       Visualizations        ###########
 
-generateProtvistaTitle <- eventReactive(input$go, {
-  req(exists(toupper(input$swissprtID)))
-  tags$a(href=paste0('https://www.uniprot.org/uniprot/', toupper(input$swissprtID), '/protvista'), paste0("Protvista: ", toupper(input$swissprtID)) )
-})
 
 output$protvista <- renderUI({
-  h3( generateProtvistaTitle() )
+  req(length(protData()[,1])>0)  
+  h3( tags$a(href=paste0('https://www.uniprot.org/uniprot/', toupper(input$swissprtID), '/protvista'), paste0("Protvista: ", toupper(input$swissprtID)) ) )
 })
 
-generateProtterTitle <- eventReactive(input$go, {
-  req(exists(toupper(input$swissprtID)))
-  tags$a(href=paste0('http://wlab.ethz.ch/protter/#up=', toupper(input$swissprtID), '&tm=auto&mc=lightsalmon&lc=blue&tml=numcount&numbers&legend&n:signal%20peptide,fc:red,bc:red=UP.SIGNAL&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:variants,s:diamond,fc:orange,bc:orange=UP.VARIANT&n:PTMs,s:box,fc:forestgreen,bc:forestgreen=UP.CARBOHYD,UP.MOD_RES&format=svg'), paste0("Protter: ", toupper(input$swissprtID)) )
-})
 
 output$protter <- renderUI({
-  h3( generateProtterTitle() )
+  req(length(protData()[,1])>0)  
+  h3(  tags$a(href=paste0('http://wlab.ethz.ch/protter/#up=', toupper(input$swissprtID), '&tm=auto&mc=lightsalmon&lc=blue&tml=numcount&numbers&legend&n:signal%20peptide,fc:red,bc:red=UP.SIGNAL&n:disulfide%20bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID&n:variants,s:diamond,fc:orange,bc:orange=UP.VARIANT&n:PTMs,s:box,fc:forestgreen,bc:forestgreen=UP.CARBOHYD,UP.MOD_RES&format=svg'), paste0("Protter: ", toupper(input$swissprtID)) ))
 })
 
-generateProtter <- eventReactive(input$go, {
-  req(exists(toupper(input$swissprtID)))
+generateProtter <- function () {
   
-  startSQL <-"
-  SELECT
-  range,
-  CASE
-  WHEN numMotifsPhobiusK > 0 THEN
-  1
-  ELSE
-  0
-  END K,
-  CASE
-  WHEN numMotifsPhobiusC > 0 THEN
-  1
-  ELSE
-  0
-  END C,
-  CASE
-  WHEN numMotifsPhobiusNXS > 0  OR numMotifsPhobiusNXT > 0 OR numMotifsPhobiusNXC > 0 OR numMotifsPhobiusNXV > 0 THEN
-  1
-  ELSE
-  0
-  END N
-  FROM
-  pep
-  WHERE
-  Accession = '"
-  
-  endSQL <- "' AND
-  OKforMS != 0 AND
-  numMissedCleavages = 0;"
-  
-  sql <- paste0(startSQL, toupper(input$swissprtID), endSQL)
+
+  df <- pepData()[c("range", "numMissedCleavages", "OKforMS", "numMotifsPhobiusK", "numMotifsPhobiusC", "numMotifsPhobiusNXS", "numMotifsPhobiusNXV", "numMotifsPhobiusNXT", "numMotifsPhobiusNXC")]
+  df<-filter(df, numMissedCleavages == 0 & OKforMS != 0)
+  df$K <- ifelse(df$numMotifsPhobiusK >0, 1, 0)
+  df$C <- ifelse(df$numMotifsPhobiusC >0, 1, 0)
+  df$N <- ifelse( (df$numMotifsPhobiusNXS + df$numMotifsPhobiusNXT + df$numMotifsPhobiusNXV + df$numMotifsPhobiusNXC) >0, 1, 0)
 
   n <- c()
   k <- c()
@@ -490,7 +228,7 @@ generateProtter <- eventReactive(input$go, {
   nck <- c()
   zero <- c()
   
-  df<-dbGetQuery(conn, sql)
+  
   for (i in 1:nrow(df)) {
     if( df[i,]$N==1 & df[i,]$K==0 & df[i,]$C == 0 ) {
       n <- c( n, df[i,]$range )
@@ -511,8 +249,7 @@ generateProtter <- eventReactive(input$go, {
     }
   }
   
-  sql <- paste0("SELECT motifsLocPhobiusNXS, motifsLocPhobiusNXT, motifsLocPhobiusNXC, motifsLocPhobiusNXV, motifsLocPhobiusC, motifsLocPhobiusK FROM prot where Accession ='", toupper(input$swissprtID), "';")
-  r <- dbGetQuery(conn, sql)
+  r <- protData()[c("motifsLocPhobiusNXS", "motifsLocPhobiusNXT", "motifsLocPhobiusNXC", "motifsLocPhobiusNXV", "motifsLocPhobiusC", "motifsLocPhobiusK")]
   locs <- c()
   for( motif in c('motifsLocPhobiusNXS', 'motifsLocPhobiusNXT', 'motifsLocPhobiusNXC', 'motifsLocPhobiusNXV', 'motifsLocPhobiusC', 'motifsLocPhobiusK') ){
     loc <- strsplit(as.character(r[motif]), ',')[[1]]
@@ -520,9 +257,7 @@ generateProtter <- eventReactive(input$go, {
     locs <- union(locs, loc)
   } 
 
-  sql <- paste0("SELECT Length FROM prot where Accession ='", toupper(input$swissprtID), "';")
-  len <- dbGetQuery(conn, sql)[[1]]
-  
+  len <- protData()["Length"]
   zero <- paste0('&n:Not%20Captured%20or%20Not%20OK,bc:FFFFFF,fc:D0D0D0=1-', len)
   if( !is.null(n) ){
     n <- paste0('&n:N%20Capture,bc:507F84,fc:507F84,cc:FFFFFF=', gsub(' ', '', toString(n)))
@@ -571,9 +306,11 @@ generateProtter <- eventReactive(input$go, {
   s <- paste0(s, zero, n, c, k, nc, nk, nck, m, sp, '&format=svg')
   im <-GET(s, timeout(30))
   return(im)
-})
+}
 
 output$image1 <- renderImage({
+  req(length(protData()[,1])>0)  
+
   image <- generateProtter()
   writeBin(image$content, 'test.svg')
   
@@ -584,15 +321,12 @@ output$image1 <- renderImage({
   
 }, deleteFile = TRUE)
 
-warningVMsg <- eventReactive(input$go,{  
-  if( is.null( exists(toupper(input$swissprtID)) ) ){
+output$txtVWarning <- renderText({
+  if( length(protData()[,1]) == 0 ){
     paste0("The accession, ", toupper(input$swissprtID), ", is not in our database")
   }
 })
 
-output$txtVWarning <- renderText({
-  warningVMsg()
-})
 
 ##################################################  
 ###########       Batch  Lookup        ###########
@@ -733,6 +467,7 @@ output$txtVWarning <- renderText({
   })
   
   
+  
 #Prot level Option 1
   # Downloadable csv of selected dataset ----
   output$Batch_Text_prot_download_csv <- downloadHandler(
@@ -793,6 +528,8 @@ output$txtVWarning <- renderText({
     req(input$quicklookup)
     downloadButton("Batch_Text_pep_download_tsv", ".tsv", class="download_this")
   })
+  
+
   
   
 #Prot level Option 2
@@ -855,7 +592,7 @@ output$txtVWarning <- renderText({
     req(input$file2)
     downloadButton("Batch_File_pep_download_tsv", ".tsv", class="download_this")
   })
-  
+
 }
 
 

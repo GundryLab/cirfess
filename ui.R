@@ -92,22 +92,6 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
         "- Town = Town et all, PNAS, 2016", br(),
         "- daCunha = da Cunha et al., PNAS, 2009", br(),
         "- DiazRamoz = Diaz-Ramos et al., Immol Lett, 2011")
-      # p("SigPepPhobius - Signal Peptide predicted by Phobius"),
-      # p("ScorePhobius - Phobius' Signal Peptide prediction score"),
-      # p("SigPepSignalP - Signal Peptide predicted by SignalP"),
-      # p("ScoreSignalP - SignalP's Signal Peptide prediction score"),
-      # p("SigPepPredisi - Signal Peptide predicted by Predisi"),
-      # p("ScorePredisi - Predisi's Signal Peptide prediction score"),
-      # p("#TMPhobius - Phobius' number of transmembrane domains"),
-      # p("#ICPhobius - Phobius' number of intracellular domains"),
-      # p("#ECPhobius - Phobius' number of extracellular domains"),
-      # p("#TMTMHMM - TMHMM's number of transmembrane domains"),
-      # p("#ICTMHMM - TMHMM's number of intracellular domains"),
-      # p("#ECTMHMM - TMHMM's number of extracellular domains"),
-      # p("StringOutPhobius - raw output from Phobius"),
-      # p("StringOutTMHMM - raw output from TMHMM"),
-      # p("MissedCleavages - number of times trypsin missed a cleavage in the peptide"),
-      # p("OKforMS - Length>5 and <2000m/z for 2 or 3 z")
     ),
     
     mainPanel(
@@ -124,22 +108,12 @@ shinyUI(navbarPage("", theme = "bootstrap.css",
       h5(class="text-info", "Peptides Predicted to be Present in Extracellular MS Experiment"),
       h6(class="text-info", "These Peptides have consensus motifs, m/z is ok for MS, and predicted extracellular by one or more prediction methods"),
       
-#      tableOutput('Phobius'),
-#      column( 6, tableOutput('TMHMM)') ),
       dataTableOutput('PepSummary'),
-#      h5(class="text-info", "Motif Summary"),
-#      tableOutput('MotifSummary')
-#      column( 8, plotlyOutput('Motifs', width = '400px') ),
-#      column( 8, plotlyOutput('OK', width = '400px') ),
-#     column( 6, plotlyOutput('pepPlot', width = '400px') ),
-fluidRow(      column( width=5, tableOutput('pepPhobius') ),
-      column( width=5, offset=1, tableOutput('pepTMHMM') )),
-#      tableOutput('pepPhobius'),
-#      tableOutput('pepTMHMM'),
-      textOutput('txtWarning'),
-      plotlyOutput('pepPlot')
-#      tableOutput('tabletest')
-                  ),
+      fluidRow(      column( width=5, tableOutput('pepPhobius') ),
+        column( width=5, offset=1, tableOutput('pepTMHMM') )),
+        textOutput('txtWarning'),
+        plotlyOutput('pepPlot')
+      ),
 tabPanel(
   "Visualizations",
   uiOutput('protvista'),
